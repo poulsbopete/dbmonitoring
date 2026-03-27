@@ -25,6 +25,22 @@ set -euxo pipefail
 
 echo "=== DB Monitoring Track — bootstrap (es3-api) ==="
 
+# Debug: confirm the key is present and show first/last 4 chars
+_key_len="${#PME_CLOUD_INSTRUQT_API_KEY}"
+_key_preview="${PME_CLOUD_INSTRUQT_API_KEY:0:4}...${PME_CLOUD_INSTRUQT_API_KEY: -4}"
+echo "DEBUG: API key length=${_key_len} preview=${_key_preview}"
+
+# Quick sanity-check against the Elastic Cloud API before attempting project creation
+_auth_check=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: ApiKey ${PME_CLOUD_INSTRUQT_API_KEY}" \
+  "https://api.elastic-cloud.com/api/v1/serverless/projects/observability?page_size=1")
+echo "DEBUG: Elastic Cloud auth check → HTTP ${_auth_check}"
+if [ "$_auth_check" = "401" ] || [ "$_auth_check" = "403" ]; then
+  echo "ERROR: ESS_CLOUD_API_KEY is invalid or lacks permissions (HTTP ${_auth_check})." >&2
+  echo "       Please update the ESS_CLOUD_API_KEY org secret in the Instruqt dashboard." >&2
+  exit 1
+fi
+
 # Wait for Instruqt host bootstrap
 _n=0
 until [ -f /opt/instruqt/bootstrap/host-bootstrap-completed ]; do
