@@ -12,8 +12,8 @@ notes:
     ## While you wait… 🧛
 
     <iframe src="https://poulsbopete.github.io/Vampire-Clone/"
-      width="100%" height="520" frameborder="0"
-      allow="autoplay" style="border-radius:8px">
+      width="100%" height="800" frameborder="0"
+      allow="autoplay" style="border-radius:8px;display:block">
     </iframe>
 
     *Your Elastic environment and 4 days of database telemetry are generating in the background.*
