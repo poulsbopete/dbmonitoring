@@ -1,3 +1,0 @@
-#!/bin/bash
-set -euxo pipefail
-chmod +x /root/workshop/scripts/*.sh 2>/dev/null || true

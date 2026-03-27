@@ -1,34 +1,41 @@
 slug: serverless-db-monitoring
 id: kz0navpyrwlk
-title: Elastic Serverless Database Monitoring
-teaser: Practice moving Grafana and Datadog estates onto Elastic Observability Serverless—dashboards,
-  alerts, OTLP ingest, and AI-assisted refinement at realistic volume.
+title: Elastic Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB
+teaser: See Elastic's database monitoring capabilities for MySQL, PostgreSQL, SQL Server,
+  and MongoDB side-by-side vs Datadog DBM and Dynatrace. OpenTelemetry end to end,
+  no proprietary agents.
 description: |
-  **Goal:** Build skills to **migrate customers from Grafana and Datadog** onto **Elastic Observability Serverless**—batch
-  conversion, publishing APIs, alert mapping, and **OpenTelemetry** ingest (Alloy → **managed OTLP**) so Kibana validates
-  against **live** Serverless data.
+  **Goal:** Demonstrate Elastic Observability Serverless as a superior alternative to
+  **Datadog Database Monitoring (DBM)** and **Dynatrace** for customers running
+  **MySQL, PostgreSQL, Microsoft SQL Server, and MongoDB**.
 
-  A **two-lab** spike sized like a real program: **20** Grafana dashboards and **10** Datadog-style **dashboard** JSON
-  files, plus **4** Datadog **monitor** samples—**30+** dashboard-class artifacts before you even count alert drafts.
+  The track automatically generates **4 days of realistic telemetry** for all four database
+  platforms via **OpenTelemetry OTLP** — slow queries, connections, lock waits, deadlocks,
+  replication lag, buffer cache hit ratios, I/O latency, and more — and deploys a dedicated
+  **Kibana dashboard** for each platform.
 
-  **Lab 1** batch-converts Grafana exports (`tools/grafana_to_elastic.py`); learners use **Cursor** and
-  [Elastic Agent Skills](https://github.com/elastic/agent-skills) (**`kibana-dashboards`**) to refine and publish in **Kibana**.
+  **Key differentiators vs Datadog / Dynatrace:**
+  - **No proprietary agents** — standard OpenTelemetry receivers
+  - **SQL Server at no extra cost** (Datadog DBM charges a premium add-on)
+  - **MongoDB** is first-class (limited or paid in competitors)
+  - **Unlimited custom dashboards** via Lens + ES|QL
+  - **AI-assisted dashboard building** with Cursor + Elastic Agent Skills in under 2 minutes
+  - **Open standards** — no vendor lock-in, data sovereignty
 
-  **Lab 2** uses `tools/datadog_dashboard_to_elastic.py` for dashboards and `tools/datadog_to_elastic_alert.py` for monitors,
-  with the same **AI + skills** pattern for **rules** and **dashboards** on **Observability Serverless**, plus
-  **Datadog-style OTLP** samples into Elastic’s managed collector.
-
-  The sandbox is a single **elastic/es3-api-v2** host: it **creates** an Observability Serverless project at track start,
-  proxies **Kibana** on port **8080**, and includes the workshop repo (Python venv + **assets/**) for the CLIs.
-
-  **Telemetry diagram:** loading / wait slides include a **Mermaid + ASCII** workflow (**Python OTLP → Grafana Alloy → Elastic mOTLP → Serverless → Kibana**).
+  The sandbox is a single **elastic/es3-api-v2** host that creates a fresh Observability
+  Serverless project per play, proxies **Kibana** on port **8080**, and runs the Python
+  OTLP generator in the background throughout the session.
 icon: https://cdn.instruqt.com/assets/templates/kubernetes.png
 tags:
 - elastic
 - opentelemetry
 - serverless
-- migration
+- database-monitoring
 - observability
+- mysql
+- postgresql
+- sqlserver
+- mongodb
 owner: elastic
 developers:
 - peter.simkins@elastic.co

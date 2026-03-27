@@ -1,0 +1,125 @@
+{
+  "title": "PostgreSQL — Performance & Health",
+  "description": "Connections, cache hit ratio, commits, deadlocks, and database size via OpenTelemetry",
+  "time_range": { "from": "now-7d", "to": "now" },
+  "panels": [
+    {
+      "type": "lens", "uid": "pg-kpi-connections",
+      "grid": { "x": 0, "y": 0, "w": 12, "h": 5 },
+      "config": { "title": "Active Connections",
+        "attributes": { "title": "", "type": "metric",
+          "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS `Active Connections` = MAX(`postgresql.backends`)" },
+          "metrics": [{ "type": "primary", "operation": "value", "column": "Active Connections" }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-kpi-deadlocks",
+      "grid": { "x": 12, "y": 0, "w": 12, "h": 5 },
+      "config": { "title": "Total Deadlocks",
+        "attributes": { "title": "", "type": "metric",
+          "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS `Total Deadlocks` = MAX(`postgresql.deadlocks`)" },
+          "metrics": [{ "type": "primary", "operation": "value", "column": "Total Deadlocks" }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-kpi-db-size",
+      "grid": { "x": 24, "y": 0, "w": 12, "h": 5 },
+      "config": { "title": "Max DB Size (bytes)",
+        "attributes": { "title": "", "type": "metric",
+          "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS `Max DB Size` = MAX(`postgresql.db_size`)" },
+          "metrics": [{ "type": "primary", "operation": "value", "column": "Max DB Size" }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-kpi-max-conn",
+      "grid": { "x": 36, "y": 0, "w": 12, "h": 5 },
+      "config": { "title": "Max Connections Limit",
+        "attributes": { "title": "", "type": "metric",
+          "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS `Connection Limit` = MAX(`postgresql.connection.max`)" },
+          "metrics": [{ "type": "primary", "operation": "value", "column": "Connection Limit" }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-connections-trend",
+      "grid": { "x": 0, "y": 5, "w": 24, "h": 11 },
+      "config": { "title": "Active Connections Over Time",
+        "attributes": { "title": "Active Connections Over Time", "type": "xy",
+          "legend": { "visibility": "visible", "position": "right" },
+          "layers": [{ "type": "area_stacked",
+            "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS backends = AVG(`postgresql.backends`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL" },
+            "x": { "operation": "value", "column": "bucket" },
+            "y": [{ "operation": "value", "column": "backends" }],
+            "breakdown_by": { "operation": "value", "column": "postgresql.database.name" }
+          }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-db-size-bars",
+      "grid": { "x": 24, "y": 5, "w": 24, "h": 11 },
+      "config": { "title": "Database Size by Database",
+        "attributes": { "title": "Database Size by Database", "type": "xy",
+          "layers": [{ "type": "bar_horizontal",
+            "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS db_size = MAX(`postgresql.db_size`) BY `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL | SORT db_size DESC | LIMIT 10" },
+            "x": { "operation": "value", "column": "postgresql.database.name" },
+            "y": [{ "operation": "value", "column": "db_size" }]
+          }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-rows-trend",
+      "grid": { "x": 0, "y": 16, "w": 24, "h": 11 },
+      "config": { "title": "Rows Inserted / Updated / Deleted Over Time",
+        "attributes": { "title": "Rows Inserted / Updated / Deleted Over Time", "type": "xy",
+          "legend": { "visibility": "visible", "position": "right" },
+          "layers": [{ "type": "line",
+            "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS inserted = MAX(`postgresql.tup_inserted`), updated = MAX(`postgresql.tup_updated`), deleted = MAX(`postgresql.tup_deleted`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend)" },
+            "x": { "operation": "value", "column": "bucket" },
+            "y": [
+              { "operation": "value", "column": "inserted" },
+              { "operation": "value", "column": "updated" },
+              { "operation": "value", "column": "deleted" }
+            ]
+          }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-deadlocks-trend",
+      "grid": { "x": 24, "y": 16, "w": 24, "h": 11 },
+      "config": { "title": "Deadlocks Over Time by Database",
+        "attributes": { "title": "Deadlocks Over Time by Database", "type": "xy",
+          "legend": { "visibility": "visible", "position": "right" },
+          "layers": [{ "type": "bar_stacked",
+            "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS deadlocks = MAX(`postgresql.deadlocks`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL" },
+            "x": { "operation": "value", "column": "bucket" },
+            "y": [{ "operation": "value", "column": "deadlocks" }],
+            "breakdown_by": { "operation": "value", "column": "postgresql.database.name" }
+          }]
+        }
+      }
+    },
+    {
+      "type": "lens", "uid": "pg-summary-table",
+      "grid": { "x": 0, "y": 27, "w": 48, "h": 10 },
+      "config": { "title": "Database Summary",
+        "attributes": { "title": "Database Summary", "type": "data_table",
+          "dataset": { "type": "esql", "query": "FROM metrics-postgresqlreceiver.otel-default | STATS max_backends = MAX(`postgresql.backends`), max_size = MAX(`postgresql.db_size`), max_deadlocks = MAX(`postgresql.deadlocks`), max_commits = MAX(`postgresql.commits`), max_rollbacks = MAX(`postgresql.rollbacks`) BY `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL | SORT max_backends DESC" },
+          "rows": [{ "operation": "value", "column": "postgresql.database.name" }],
+          "metrics": [
+            { "operation": "value", "column": "max_backends", "label": "Max Connections" },
+            { "operation": "value", "column": "max_size", "label": "Size (bytes)" },
+            { "operation": "value", "column": "max_deadlocks", "label": "Deadlocks" },
+            { "operation": "value", "column": "max_commits", "label": "Commits" },
+            { "operation": "value", "column": "max_rollbacks", "label": "Rollbacks" }
+          ]
+        }
+      }
+    }
+  ]
+}

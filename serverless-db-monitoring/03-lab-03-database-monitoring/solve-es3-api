@@ -1,6 +1,0 @@
-#!/bin/bash
-# Solve: re-run the setup to ensure the dashboard is deployed.
-set -euo pipefail
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-bash "${SCRIPT_DIR}/setup-es3-api"

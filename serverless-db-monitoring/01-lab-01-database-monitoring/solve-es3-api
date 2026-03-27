@@ -1,0 +1,52 @@
+#!/bin/bash
+# Restart the DB monitoring data generator and re-deploy dashboards if needed.
+
+set -euo pipefail
+source /root/.bashrc || true
+
+DB_REPO_DIR=/opt/dbmonitoring
+
+# Restart generator if not running
+if ! pgrep -f db_otel_generator.py > /dev/null 2>&1; then
+  echo "Restarting data generator..."
+  mkdir -p /tmp/db-monitoring-logs
+  nohup /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/tools/db_otel_generator.py" \
+    --otlp-endpoint "${WORKSHOP_OTLP_ENDPOINT}" \
+    --otlp-auth "${WORKSHOP_OTLP_AUTH_HEADER}" \
+    --historical-days 4 \
+    --live \
+    >> /tmp/db-monitoring-logs/generator.log 2>&1 &
+  echo "Generator PID: $! (log: /tmp/db-monitoring-logs/generator.log)"
+else
+  echo "Generator already running."
+fi
+
+# Re-deploy dashboards if IDs file is missing/empty
+if [ ! -s /root/workshop/build/db-monitoring/dashboard-ids.txt ]; then
+  echo "Re-deploying dashboards..."
+  mkdir -p /root/workshop/build/db-monitoring
+
+  _deploy() {
+    local title="$1" file="$2"
+    local body http_code
+    body="$(curl -s -w "\n%{http_code}" \
+      -X POST "${KIBANA_URL}/api/dashboards" \
+      -H "Content-Type: application/json" -H "kbn-xsrf: true" \
+      -H "Authorization: ApiKey ${ES_API_KEY}" \
+      -H "Elastic-Api-Version: 1" \
+      -d "$(cat "$file")" 2>/dev/null || true)"
+    http_code="$(echo "$body" | tail -n1)"
+    echo "  ${title}: HTTP ${http_code}"
+    if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+      echo "$body" | sed '$d' | jq -r '.item.id // .id // empty' \
+        >> /root/workshop/build/db-monitoring/dashboard-ids.txt
+    fi
+  }
+
+  _deploy "MySQL — Slow Query & Error Monitoring"   "$DB_REPO_DIR/dashboards/mysql-monitoring.json"
+  _deploy "PostgreSQL — Performance & Health"        "$DB_REPO_DIR/dashboards/postgres-monitoring.json"
+  _deploy "SQL Server — Performance & Health"        "$DB_REPO_DIR/dashboards/mssql-monitoring.json"
+  _deploy "MongoDB — Operations & Health"            "$DB_REPO_DIR/dashboards/mongodb-monitoring.json"
+fi
+
+echo "Done. Open Kibana → Dashboards to explore."
