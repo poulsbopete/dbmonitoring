@@ -1,0 +1,51 @@
+slug: serverless-db-monitoring
+id: kz0navpyrwlk
+title: Elastic Serverless Database Monitoring
+teaser: Practice moving Grafana and Datadog estates onto Elastic Observability Serverless—dashboards,
+  alerts, OTLP ingest, and AI-assisted refinement at realistic volume.
+description: |
+  **Goal:** Build skills to **migrate customers from Grafana and Datadog** onto **Elastic Observability Serverless**—batch
+  conversion, publishing APIs, alert mapping, and **OpenTelemetry** ingest (Alloy → **managed OTLP**) so Kibana validates
+  against **live** Serverless data.
+
+  A **two-lab** spike sized like a real program: **20** Grafana dashboards and **10** Datadog-style **dashboard** JSON
+  files, plus **4** Datadog **monitor** samples—**30+** dashboard-class artifacts before you even count alert drafts.
+
+  **Lab 1** batch-converts Grafana exports (`tools/grafana_to_elastic.py`); learners use **Cursor** and
+  [Elastic Agent Skills](https://github.com/elastic/agent-skills) (**`kibana-dashboards`**) to refine and publish in **Kibana**.
+
+  **Lab 2** uses `tools/datadog_dashboard_to_elastic.py` for dashboards and `tools/datadog_to_elastic_alert.py` for monitors,
+  with the same **AI + skills** pattern for **rules** and **dashboards** on **Observability Serverless**, plus
+  **Datadog-style OTLP** samples into Elastic’s managed collector.
+
+  The sandbox is a single **elastic/es3-api-v2** host: it **creates** an Observability Serverless project at track start,
+  proxies **Kibana** on port **8080**, and includes the workshop repo (Python venv + **assets/**) for the CLIs.
+
+  **Telemetry diagram:** loading / wait slides include a **Mermaid + ASCII** workflow (**Python OTLP → Grafana Alloy → Elastic mOTLP → Serverless → Kibana**).
+icon: https://cdn.instruqt.com/assets/templates/kubernetes.png
+tags:
+- elastic
+- opentelemetry
+- serverless
+- migration
+- observability
+owner: elastic
+developers:
+- peter.simkins@elastic.co
+show_timer: true
+skipping_enabled: true
+idle_timeout: 600
+timelimit: 14400
+lab_config:
+  sidebar_enabled: true
+  feedback_recap_enabled: true
+  feedback_tab_enabled: false
+  loadingMessages: true
+  theme:
+    name: modern-dark
+  override_challenge_layout: false
+  hideStopButton: false
+  default_layout: AssignmentRight
+  default_layout_sidebar_size: 35
+checksum: "7465230716329720730"
+enhanced_loading: false
