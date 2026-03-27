@@ -36,6 +36,9 @@ tags:
 - sqlserver
 - mongodb
 - observability
+secrets:
+- name: ESS_CLOUD_API_KEY
+- name: LLM_PROXY_PROD
 owner: elastic
 developers:
 - peter.simkins@elastic.co
@@ -54,5 +57,5 @@ lab_config:
   hideStopButton: false
   default_layout: AssignmentRight
   default_layout_sidebar_size: 35
-checksum: "5650800713247640531"
+checksum: "1462446441095404517"
 enhanced_loading: false
