@@ -7,6 +7,8 @@ teaser: Explore live database performance data across all four of your database 
   in Elastic Observability Serverless—slow queries, connections, lock waits, replication
   lag, and more. No proprietary agents. OpenTelemetry end to end.
 notes:
+- type: website
+  url: https://poulsbopete.github.io/Vampire-Clone/
 - type: text
   contents: |
     ## Data is loading…
@@ -51,11 +53,11 @@ notes:
     | Data sovereignty | ✗ (vendor cloud) | ✗ | ✓ **your cluster** |
     | Vendor lock-in | High | High | **None — open standards** |
 tabs:
-- id: lab01terminal
+- id: 1mqitrfzb5hr
   title: Terminal
   type: terminal
   hostname: es3-api
-- id: lab01kibana
+- id: eapiw1vxqwe9
   title: Elastic Serverless
   type: service
   hostname: es3-api
