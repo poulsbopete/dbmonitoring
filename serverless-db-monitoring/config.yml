@@ -4,15 +4,18 @@ virtualmachines:
   image: elastic/es3-api-v2
   shell: /bin/bash
   environment:
+    ESS_CLOUD_API_KEY: $ESS_CLOUD_API_KEY
+    LLM_PROXY_PROD: $LLM_PROXY_PROD
+    PME_CLOUD_INSTRUQT_API_KEY: $ESS_CLOUD_API_KEY
     PRODUCT_TIER: complete
     PROJECT_TYPE: observability
     REGIONS: aws-us-east-1
-    ESS_CLOUD_API_KEY: $ESS_CLOUD_API_KEY
-    PME_CLOUD_INSTRUQT_API_KEY: $ESS_CLOUD_API_KEY
-    LLM_PROXY_PROD: $LLM_PROXY_PROD
   memory: 12288
   cpus: 4
   allow_external_ingress:
   - http
   - https
   - high-ports
+secrets:
+- name: LLM_PROXY_PROD
+- name: ESS_CLOUD_API_KEY

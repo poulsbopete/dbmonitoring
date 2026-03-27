@@ -1,6 +1,6 @@
 ---
 slug: lab-01-database-monitoring
-id: wpfcpdfhckxi
+id: a8za8uie5rvp
 type: challenge
 title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB
 teaser: Explore live database performance data across all four of your database platforms
@@ -8,15 +8,9 @@ teaser: Explore live database performance data across all four of your database 
   lag, and more. No proprietary agents. OpenTelemetry end to end.
 notes:
 - type: text
-  contents: |
-    ## While you wait… 🧛
-
-    <iframe src="https://poulsbopete.github.io/Vampire-Clone/"
-      width="100%" height="800" frameborder="0"
-      allow="autoplay" style="border-radius:8px;display:block">
-    </iframe>
-
-    *Your Elastic environment and 4 days of database telemetry are generating in the background.*
+  contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n
+    \ width=\"100%\" height=\"800\" frameborder=\"0\"\n  allow=\"autoplay\" style=\"border-radius:8px;display:block\">\n</iframe>\n\n*Your
+    Elastic environment and 4 days of database telemetry are generating in the background.*\n"
 - type: text
   contents: |
     ## Data is loading…
@@ -61,11 +55,11 @@ notes:
     | Data sovereignty | ✗ (vendor cloud) | ✗ | ✓ **your cluster** |
     | Vendor lock-in | High | High | **None — open standards** |
 tabs:
-- id: 1mqitrfzb5hr
+- id: ns5os71akjta
   title: Terminal
   type: terminal
   hostname: es3-api
-- id: eapiw1vxqwe9
+- id: cz9hvpxnxobm
   title: Elastic Serverless
   type: service
   hostname: es3-api
