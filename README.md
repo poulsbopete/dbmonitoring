@@ -128,11 +128,10 @@ pip install -r tools/requirements.txt
 export WORKSHOP_OTLP_ENDPOINT="https://xxx.ingest.us-east-1.aws.elastic.cloud"
 export WORKSHOP_OTLP_AUTH_HEADER="ApiKey <your-api-key>"
 
-# Generate 4 days historical + keep running live
+# Generate historical MySQL log data + keep running live
 python3 tools/db_otel_generator.py \
   --otlp-endpoint "$WORKSHOP_OTLP_ENDPOINT" \
   --otlp-auth "$WORKSHOP_OTLP_AUTH_HEADER" \
-  --historical-days 4 \
   --live
 ```
 

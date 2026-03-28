@@ -9,7 +9,7 @@ description: |
   **Datadog Database Monitoring (DBM)** and **Dynatrace** for customers running
   **MySQL, PostgreSQL, Microsoft SQL Server, and MongoDB**.
 
-  The track automatically generates **4 days of realistic telemetry** for all four database
+  The track automatically generates **realistic telemetry** for all four database
   platforms via **OpenTelemetry OTLP** — slow queries, connections, lock waits, deadlocks,
   replication lag, buffer cache hit ratios, I/O latency, and more — and deploys a dedicated
   **Kibana dashboard** for each platform.
@@ -54,5 +54,5 @@ lab_config:
   hideStopButton: false
   default_layout: AssignmentRight
   default_layout_sidebar_size: 35
-checksum: "4493883461218067024"
+checksum: "6061524118729044496"
 enhanced_loading: false

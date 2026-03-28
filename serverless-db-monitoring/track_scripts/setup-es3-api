@@ -201,7 +201,7 @@ if [ -n "$WORKSHOP_OTLP_BASE" ] && [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
   export WORKSHOP_OTLP_ENDPOINT="$WORKSHOP_OTLP_BASE"
   export WORKSHOP_OTLP_AUTH_HEADER="ApiKey ${WORKSHOP_ES_API_KEY}"
 
-  echo "Starting DB monitoring data generator (4 days historical + live)..."
+  echo "Starting DB monitoring data generator (historical + live)..."
   nohup /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/tools/db_otel_generator.py" \
     --otlp-endpoint "${WORKSHOP_OTLP_ENDPOINT}" \
     --otlp-auth "${WORKSHOP_OTLP_AUTH_HEADER}" \

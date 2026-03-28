@@ -36,7 +36,7 @@ export function Slide04MySQL() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-1">
             <p className="text-[#f59e0b] text-xs font-semibold tracking-widest uppercase">MySQL</p>
-            <span className="text-white/55 text-[10px] border border-white/15 rounded-full px-2 py-0.5">LogsDB · 4 days historical</span>
+            <span className="text-white/55 text-[10px] border border-white/15 rounded-full px-2 py-0.5">LogsDB · slow query + error logs</span>
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight">
             Slow Query Intelligence <span className="text-white/55">From the Error Log Up</span>
@@ -79,7 +79,7 @@ export function Slide04MySQL() {
             <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2">
               <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Slow Query Rate</p>
               <Sparkline data={slowQueryTrend} color="#f59e0b" height={56} delay={0.5} />
-              <p className="text-white/40 text-[9px] text-center">Last 4 days →</p>
+              <p className="text-white/40 text-[9px] text-center">Slow query rate →</p>
             </div>
             <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2 flex-1">
               <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Top Tables by Slow Queries</p>

@@ -10,12 +10,12 @@ notes:
 - type: text
   contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n
     \ width=\"100%\" height=\"800\" frameborder=\"0\"\n  allow=\"autoplay\" style=\"border-radius:8px;display:block\">\n</iframe>\n\n*Your
-    Elastic environment and 4 days of database telemetry are generating in the background.*\n"
+    Elastic environment and database telemetry are generating in the background.*\n"
 - type: text
   contents: |
     ## Data is loading…
 
-    The track bootstrap is generating **4 days of telemetry** for all four database
+    The track bootstrap is generating telemetry for all four database
     platforms via OpenTelemetry → Elastic managed OTLP:
 
     ```
