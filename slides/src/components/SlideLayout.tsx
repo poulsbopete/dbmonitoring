@@ -41,12 +41,14 @@ export function SlideLayout({
           sizing="fill"
         />
       </div>
+      {/* Dark veil — improves text contrast over the animated shadow */}
+      <div className="absolute inset-0 bg-black/55" />
       {/* Subtle grid overlay */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.04]"
         style={{
-          backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+          backgroundImage: `linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px),
+                            linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)`,
           backgroundSize: '64px 64px',
         }}
       />

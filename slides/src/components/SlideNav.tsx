@@ -15,8 +15,8 @@ export function SlideNav({ current, total, onPrev, onNext }: SlideNavProps) {
         onClick={onPrev}
         disabled={current === 0}
         className={cn(
-          'flex items-center justify-center w-10 h-10 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm',
-          'text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200',
+          'flex items-center justify-center w-10 h-10 rounded-full border border-white/35 bg-white/5 backdrop-blur-sm',
+          'text-white/85 hover:text-white hover:bg-white/10 transition-all duration-200',
           'disabled:opacity-20 disabled:cursor-not-allowed',
         )}
       >
@@ -32,7 +32,7 @@ export function SlideNav({ current, total, onPrev, onNext }: SlideNavProps) {
               'rounded-full transition-all duration-300',
               i === current
                 ? 'w-6 h-2 bg-white'
-                : 'w-2 h-2 bg-white/25',
+                : 'w-2 h-2 bg-white/50',
             )}
           />
         ))}
@@ -42,8 +42,8 @@ export function SlideNav({ current, total, onPrev, onNext }: SlideNavProps) {
         onClick={onNext}
         disabled={current === total - 1}
         className={cn(
-          'flex items-center justify-center w-10 h-10 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm',
-          'text-white/60 hover:text-white hover:bg-white/10 transition-all duration-200',
+          'flex items-center justify-center w-10 h-10 rounded-full border border-white/35 bg-white/5 backdrop-blur-sm',
+          'text-white/85 hover:text-white hover:bg-white/10 transition-all duration-200',
           'disabled:opacity-20 disabled:cursor-not-allowed',
         )}
       >

@@ -33,7 +33,7 @@ export function Slide01Title() {
             </span>
           </motion.h1>
 
-          <motion.p variants={item} className="text-lg text-white/55 max-w-2xl leading-relaxed">
+          <motion.p variants={item} className="text-lg text-white/80 max-w-2xl leading-relaxed">
             One platform for <strong className="text-white/80">MySQL</strong>, <strong className="text-white/80">PostgreSQL</strong>,{' '}
             <strong className="text-white/80">SQL Server</strong> and <strong className="text-white/80">MongoDB</strong> —
             unified dashboards, AI root-cause analysis, and OpenTelemetry end to end.
@@ -43,14 +43,14 @@ export function Slide01Title() {
           <motion.div variants={item} className="grid grid-cols-2 gap-3 mt-2 w-full max-w-2xl">
             {badges.map(b => (
               <div key={b.label}
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/3 text-white/60 text-sm text-left">
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/15 bg-white/3 text-white/85 text-sm text-left">
                 <b.icon size={15} className="text-[#1ba9f5] flex-shrink-0" />
                 {b.label}
               </div>
             ))}
           </motion.div>
 
-          <motion.div variants={item} className="flex items-center gap-6 text-white/25 text-xs mt-1">
+          <motion.div variants={item} className="flex items-center gap-6 text-white/80 text-xs mt-1">
             <span>vs Datadog DBM</span>
             <span className="w-1 h-1 rounded-full bg-white/20" />
             <span>vs Dynatrace</span>

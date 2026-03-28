@@ -35,13 +35,13 @@ export function Slide08Comparison() {
         </motion.div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-          className="flex-1 min-h-0 rounded-2xl overflow-hidden border border-white/8 bg-white/2 flex flex-col">
+          className="flex-1 min-h-0 rounded-2xl overflow-hidden border border-white/15 bg-white/2 flex flex-col">
           {/* Header */}
-          <div className="grid grid-cols-[1fr_120px_120px_120px] border-b border-white/8 bg-white/4 flex-shrink-0">
-            <div className="px-4 py-2.5 text-white/40 text-[10px] uppercase tracking-widest">Feature</div>
+          <div className="grid grid-cols-[1fr_120px_120px_120px] border-b border-white/15 bg-white/4 flex-shrink-0">
+            <div className="px-4 py-2.5 text-white/70 text-[10px] uppercase tracking-widest">Feature</div>
             <div className="px-4 py-2.5 text-center text-[#1ba9f5] font-semibold text-sm">Elastic</div>
-            <div className="px-4 py-2.5 text-center text-white/40 text-sm">Datadog</div>
-            <div className="px-4 py-2.5 text-center text-white/40 text-sm">Dynatrace</div>
+            <div className="px-4 py-2.5 text-center text-white/70 text-sm">Datadog</div>
+            <div className="px-4 py-2.5 text-center text-white/70 text-sm">Dynatrace</div>
           </div>
           {/* Rows */}
           <div className="flex-1 overflow-hidden flex flex-col">
@@ -49,7 +49,7 @@ export function Slide08Comparison() {
               <motion.div key={row.feature}
                 initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.28 + i * 0.04 }}
-                className="grid grid-cols-[1fr_120px_120px_120px] border-b border-white/5 last:border-0 hover:bg-white/3 transition-colors flex-1">
+                className="grid grid-cols-[1fr_120px_120px_120px] border-b border-white/12 last:border-0 hover:bg-white/3 transition-colors flex-1">
                 <div className="px-4 flex items-center text-white/70 text-sm">{row.feature}</div>
                 <div className="px-4 flex items-center justify-center"><Cell value={row.elastic} color="#1ba9f5" /></div>
                 <div className="px-4 flex items-center justify-center"><Cell value={row.datadog} color="#1ba9f5" /></div>

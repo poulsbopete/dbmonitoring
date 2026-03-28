@@ -43,7 +43,7 @@ export function Slide02Problem() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-[#f04e98] text-xs font-semibold tracking-widest uppercase mb-1">The Challenge</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
-            Why Your Current Stack <span className="text-white/40">Isn't Cutting It</span>
+            Why Your Current Stack <span className="text-white/70">Isn't Cutting It</span>
           </h2>
         </motion.div>
 
@@ -51,7 +51,7 @@ export function Slide02Problem() {
           className="grid grid-cols-2 gap-4 flex-1 min-h-0">
           {pains.map((p) => (
             <motion.div key={p.title} variants={item} transition={{ duration: 0.35, ease: 'easeOut' }}
-              className="flex gap-4 p-5 rounded-2xl border border-white/8 bg-white/3 backdrop-blur-sm min-h-0">
+              className="flex gap-4 p-5 rounded-2xl border border-white/15 bg-white/3 backdrop-blur-sm min-h-0">
               <div className="flex flex-col gap-3 flex-shrink-0">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: `${p.color}18`, border: `1px solid ${p.color}30` }}>
@@ -59,12 +59,12 @@ export function Slide02Problem() {
                 </div>
                 <div className="text-center">
                   <div className="text-2xl font-bold" style={{ color: p.color }}>{p.stat}</div>
-                  <div className="text-white/30 text-[10px] leading-tight">{p.statLabel}</div>
+                  <div className="text-white/85 text-[10px] leading-tight">{p.statLabel}</div>
                 </div>
               </div>
               <div className="flex flex-col gap-1 min-w-0">
                 <h3 className="text-base font-semibold text-white">{p.title}</h3>
-                <p className="text-white/55 text-sm leading-relaxed">{p.body}</p>
+                <p className="text-white/80 text-sm leading-relaxed">{p.body}</p>
               </div>
             </motion.div>
           ))}

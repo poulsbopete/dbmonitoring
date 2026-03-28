@@ -41,10 +41,10 @@ export function Slide09AIWorkflow() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-1">
             <p className="text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase">AI-Powered RCA</p>
-            <span className="text-white/25 text-[10px] border border-white/10 rounded-full px-2 py-0.5">Elastic Workflows · Technical Preview</span>
+            <span className="text-white/80 text-[10px] border border-white/10 rounded-full px-2 py-0.5">Elastic Workflows · Technical Preview</span>
           </div>
           <h2 className="text-4xl font-bold text-white leading-tight">
-            Alert → Root Cause → Case <span className="text-white/40">Without Human Intervention</span>
+            Alert → Root Cause → Case <span className="text-white/70">Without Human Intervention</span>
           </h2>
         </motion.div>
 
@@ -62,7 +62,7 @@ export function Slide09AIWorkflow() {
                 </div>
                 <div className="flex flex-col gap-1 flex-1">
                   <div className="text-white font-semibold">{step.label}</div>
-                  <p className="text-white/55 text-sm leading-snug flex-1">{step.desc}</p>
+                  <p className="text-white/80 text-sm leading-snug flex-1">{step.desc}</p>
                 </div>
                 <div className="text-[10px] font-mono rounded-lg px-3 py-1.5 leading-snug"
                   style={{ background: `${step.color}10`, color: `${step.color}cc` }}>
@@ -81,7 +81,7 @@ export function Slide09AIWorkflow() {
         </div>
 
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
-          className="rounded-xl border border-white/8 bg-black/25 px-5 py-3 font-mono text-[10px] text-white/40 flex flex-wrap gap-x-8 gap-y-1">
+          className="rounded-xl border border-white/15 bg-black/25 px-5 py-3 font-mono text-[10px] text-white/70 flex flex-wrap gap-x-8 gap-y-1">
           <span><span className="text-white/20">trigger: </span><span className="text-[#1ba9f5]">alert</span></span>
           <span><span className="text-white/20">agent: </span><span className="text-[#00bfa5]">observability.agent</span></span>
           <span><span className="text-white/20">rules: </span><span className="text-[#a855f7]">5 database monitoring rules</span></span>

@@ -32,7 +32,7 @@ export function Slide10NextSteps() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase mb-1">What's Next</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
-            Ready to Replace <span className="text-white/40">Your DB Monitoring Stack?</span>
+            Ready to Replace <span className="text-white/70">Your DB Monitoring Stack?</span>
           </h2>
         </motion.div>
 
@@ -41,7 +41,7 @@ export function Slide10NextSteps() {
             <motion.div key={s.number}
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 + i * 0.1 }}
-              className="flex gap-4 p-5 rounded-2xl border border-white/8 bg-white/3 min-h-0">
+              className="flex gap-4 p-5 rounded-2xl border border-white/15 bg-white/3 min-h-0">
               <div className="flex flex-col items-center gap-2 flex-shrink-0">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center"
                   style={{ background: `${s.color}18`, border: `1px solid ${s.color}30` }}>
@@ -51,7 +51,7 @@ export function Slide10NextSteps() {
               </div>
               <div className="flex flex-col gap-1.5 min-w-0">
                 <h3 className="text-white font-semibold">{s.title}</h3>
-                <p className="text-white/55 text-sm leading-snug flex-1">{s.body}</p>
+                <p className="text-white/80 text-sm leading-snug flex-1">{s.body}</p>
                 <div className="text-[10px] mt-1 font-mono" style={{ color: `${s.color}99` }}>{s.cta}</div>
               </div>
             </motion.div>

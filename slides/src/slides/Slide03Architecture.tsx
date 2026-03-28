@@ -16,7 +16,7 @@ export function Slide03Architecture() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase mb-1">How It Works</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
-            One Pipeline, <span className="text-white/40">Four Databases</span>
+            One Pipeline, <span className="text-white/70">Four Databases</span>
           </h2>
         </motion.div>
 
@@ -26,15 +26,15 @@ export function Slide03Architecture() {
             {/* Sources */}
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
               className="flex flex-col gap-2 flex-1">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Data Sources</p>
+              <p className="text-white/85 text-xs uppercase tracking-widest mb-1">Data Sources</p>
               {sources.map((s, i) => (
                 <motion.div key={s.label} initial={{ opacity: 0, x: -15 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 + i * 0.08 }}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/3">
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/15 bg-white/3">
                   <Database size={16} style={{ color: s.color }} />
                   <div className="flex-1 min-w-0">
                     <div className="text-white font-semibold text-sm">{s.label}</div>
-                    <div className="text-white/40 text-xs truncate">{s.sub}</div>
+                    <div className="text-white/70 text-xs truncate">{s.sub}</div>
                   </div>
                   <span className="text-[10px] border rounded-full px-2 py-0.5 flex-shrink-0"
                     style={{ color: s.color, borderColor: `${s.color}40` }}>{s.stream}</span>
@@ -50,9 +50,9 @@ export function Slide03Architecture() {
               <div className="flex flex-col items-center gap-1 px-4 py-5 rounded-2xl border border-[#1ba9f5]/30 bg-[#1ba9f5]/8 text-center">
                 <Activity size={20} className="text-[#1ba9f5]" />
                 <span className="text-[#1ba9f5] font-bold text-sm mt-1">OpenTelemetry</span>
-                <span className="text-white/40 text-xs">OTLP/HTTP</span>
-                <span className="text-white/30 text-[10px] mt-1">No agents</span>
-                <span className="text-white/30 text-[10px]">Open standard</span>
+                <span className="text-white/70 text-xs">OTLP/HTTP</span>
+                <span className="text-white/85 text-[10px] mt-1">No agents</span>
+                <span className="text-white/85 text-[10px]">Open standard</span>
               </div>
               <ArrowRight className="text-white/20" size={18} />
             </motion.div>
@@ -61,9 +61,9 @@ export function Slide03Architecture() {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.65 }}
               className="flex flex-col gap-2 flex-1">
-              <p className="text-white/30 text-xs uppercase tracking-widest mb-1">Elastic Observability Serverless</p>
+              <p className="text-white/85 text-xs uppercase tracking-widest mb-1">Elastic Observability Serverless</p>
               <div className="flex-1 p-4 rounded-xl border border-[#1ba9f5]/20 bg-[#1ba9f5]/5 flex flex-col gap-2">
-                <div className="flex items-center gap-2 pb-2 border-b border-white/8">
+                <div className="flex items-center gap-2 pb-2 border-b border-white/15">
                   <BarChart3 size={16} className="text-[#1ba9f5]" />
                   <span className="text-white font-semibold text-sm">4 Kibana Dashboards</span>
                 </div>
@@ -76,7 +76,7 @@ export function Slide03Architecture() {
                   <div key={idx} className="flex items-start gap-2">
                     <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0" style={{ background: color as string }} />
                     <div>
-                      <div className="text-white/60 font-mono text-[10px]">{idx}</div>
+                      <div className="text-white/85 font-mono text-[10px]">{idx}</div>
                       <div className="text-white/35 text-[10px]">{label}</div>
                     </div>
                   </div>
@@ -86,12 +86,12 @@ export function Slide03Architecture() {
                 <Bot size={15} className="text-[#a855f7]" />
                 <div>
                   <div className="text-white text-xs font-semibold">AI RCA Workflow</div>
-                  <div className="text-white/40 text-[10px]">Alert → investigate → create case</div>
+                  <div className="text-white/70 text-[10px]">Alert → investigate → create case</div>
                 </div>
               </div>
               <div className="flex gap-2">
                 {['Alert Rules', 'Cases', 'SLOs'].map(t => (
-                  <div key={t} className="flex-1 text-center text-[10px] text-white/40 border border-white/8 rounded-lg py-1.5">{t}</div>
+                  <div key={t} className="flex-1 text-center text-[10px] text-white/70 border border-white/15 rounded-lg py-1.5">{t}</div>
                 ))}
               </div>
             </motion.div>
