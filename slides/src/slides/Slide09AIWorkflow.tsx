@@ -1,92 +1,131 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
-import { Bell, Bot, FileText, GitBranch, ArrowRight } from 'lucide-react';
+import { Bell, Search, FileText, CheckCircle, ArrowDown } from 'lucide-react';
 
 const steps = [
   {
-    icon: Bell,
-    color: '#ef4444',
-    label: 'Alert Fires',
-    desc: '5 pre-wired rules cover all 4 DB types. Triggers on slow queries, connection spikes, deadlocks, transaction surges, and op rate anomalies.',
-    detail: 'MySQL · PostgreSQL · SQL Server · MongoDB',
+    icon: Bell, num: '01', color: '#ef4444',
+    title: 'Alert Fires',
+    items: ['5 pre-wired rules', 'MySQL · PG · SQL · Mongo', 'ES|QL threshold check', 'Debounced, noise-free'],
+    badge: 'Kibana Alerting',
   },
   {
-    icon: Bot,
-    color: '#1ba9f5',
-    label: 'AI Investigates',
-    desc: 'Observability AI Agent runs ES|QL queries across logs and metrics, correlates signals across all 4 engines, and identifies root cause.',
-    detail: 'observability.agent via Kibana Workflows',
+    icon: Search, num: '02', color: '#f59e0b',
+    title: 'AI Investigates',
+    items: ['Observability AI agent', 'Queries Logs + Metrics', 'Correlates across DBs', 'Identifies root cause'],
+    badge: 'observability.agent',
   },
   {
-    icon: FileText,
-    color: '#a855f7',
-    label: 'Case Created',
-    desc: 'Kibana case auto-created with AI-written title and description. Investigation trail and reasoning steps attached as comments.',
-    detail: 'owner: observability · severity: medium',
+    icon: FileText, num: '03', color: '#3b82f6',
+    title: 'Case Created',
+    items: ['Full markdown writeup', 'Kibana Cases API', 'Deep-links to Discover', 'Workflow trace ID'],
+    badge: 'Kibana Cases',
   },
   {
-    icon: GitBranch,
-    color: '#00bfa5',
-    label: 'Evidence Linked',
-    desc: 'Triggering alert, full AI conversation, and Discover deep-links for every ES|QL query run during the investigation are attached.',
-    detail: 'context.kibana_url deep-links included',
+    icon: CheckCircle, num: '04', color: '#00bfa5',
+    title: 'Acknowledge & Learn',
+    items: ['Human reviews case', 'Add resolution notes', 'Closed-loop feedback', 'Feeds ML baselines'],
+    badge: 'Human in loop',
   },
 ];
 
+// Animated SVG line connecting steps
+function Connector({ color, delay }: { color: string; delay: number }) {
+  return (
+    <div className="flex flex-col items-center py-0.5 flex-shrink-0">
+      <div className="flex-1 w-px bg-white/10 relative overflow-hidden">
+        <motion.div className="absolute inset-0 w-full"
+          style={{ background: `linear-gradient(to bottom, ${color}, transparent)` }}
+          initial={{ scaleY: 0, transformOrigin: 'top' }}
+          animate={{ scaleY: 1 }}
+          transition={{ delay, duration: 0.6, ease: 'easeOut' }} />
+      </div>
+      <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: delay + 0.3, duration: 0.3 }}>
+        <ArrowDown size={10} className="text-white/30" />
+      </motion.div>
+    </div>
+  );
+}
+
 export function Slide09AIWorkflow() {
   return (
-    <SlideLayout shadowColor="rgba(27, 169, 245, 0.5)" shadowSpeed={55} shadowScale={80}>
-      <div className="flex flex-col h-full px-10 py-8 gap-5 overflow-hidden">
+    <SlideLayout shadowColor="rgba(168, 85, 247, 0.5)" shadowSpeed={55} shadowScale={80}>
+      <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="flex items-center gap-3 mb-1">
-            <p className="text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase">AI-Powered RCA</p>
-            <span className="text-white/80 text-[10px] border border-white/10 rounded-full px-2 py-0.5">Elastic Workflows · Technical Preview</span>
-          </div>
+          <p className="text-[#a855f7] text-xs font-semibold tracking-widest uppercase mb-1">AI Workflows</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
-            Alert → Root Cause → Case <span className="text-white/70">Without Human Intervention</span>
+            Alert → Investigate → <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#a855f7] to-[#1ba9f5]">Case Closed</span>
           </h2>
         </motion.div>
 
-        <div className="flex items-stretch gap-2 flex-1 min-h-0">
-          {steps.map((step, i) => (
-            <React.Fragment key={step.label}>
-              <motion.div
-                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.13 }}
-                className="flex-1 flex flex-col gap-3 p-5 rounded-2xl border bg-white/3"
-                style={{ borderColor: `${step.color}22` }}>
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: `${step.color}18`, border: `1px solid ${step.color}30` }}>
-                  <step.icon size={18} style={{ color: step.color }} />
+        <div className="flex gap-5 flex-1 min-h-0">
+          {/* Flow — left column */}
+          <div className="flex flex-1 gap-2 min-h-0">
+            <div className="flex flex-col">
+              {steps.map((step, i) => (
+                <div key={step.num} className="flex gap-2 flex-1">
+                  {/* Step block */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -14 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.15 + i * 0.12 }}
+                    className="flex gap-3 p-4 rounded-xl border border-white/12 bg-white/6 flex-1">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${step.color}18`, border: `1px solid ${step.color}35` }}>
+                      <step.icon size={17} style={{ color: step.color }} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-mono text-white/40">{step.num}</span>
+                        <span className="text-white font-semibold text-sm">{step.title}</span>
+                        <span className="ml-auto text-[9px] px-2 py-0.5 rounded-full border border-white/15 text-white/50">{step.badge}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {step.items.map(item => (
+                          <span key={item} className="text-[10px] text-white/65 border border-white/10 rounded px-1.5 py-0.5 bg-white/4">{item}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
                 </div>
-                <div className="flex flex-col gap-1 flex-1">
-                  <div className="text-white font-semibold">{step.label}</div>
-                  <p className="text-white/80 text-sm leading-snug flex-1">{step.desc}</p>
-                </div>
-                <div className="text-[10px] font-mono rounded-lg px-3 py-1.5 leading-snug"
-                  style={{ background: `${step.color}10`, color: `${step.color}cc` }}>
-                  {step.detail}
-                </div>
-                <div className="text-xs text-white/20 font-mono">Step {i + 1} / {steps.length}</div>
-              </motion.div>
-              {i < steps.length - 1 && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 + i * 0.13 }}
-                  className="flex items-center flex-shrink-0">
-                  <ArrowRight size={16} className="text-white/15" />
-                </motion.div>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
+              ))}
+            </div>
 
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.85 }}
-          className="rounded-xl border border-white/15 bg-black/25 px-5 py-3 font-mono text-[10px] text-white/70 flex flex-wrap gap-x-8 gap-y-1">
-          <span><span className="text-white/20">trigger: </span><span className="text-[#1ba9f5]">alert</span></span>
-          <span><span className="text-white/20">agent: </span><span className="text-[#00bfa5]">observability.agent</span></span>
-          <span><span className="text-white/20">rules: </span><span className="text-[#a855f7]">5 database monitoring rules</span></span>
-          <span><span className="text-white/20">output: </span><span className="text-[#f59e0b]">kibana.case + comments + alert link</span></span>
-        </motion.div>
+            {/* Vertical connectors */}
+            <div className="flex flex-col gap-0 w-6 mt-8">
+              {steps.slice(0, -1).map((step, i) => (
+                <Connector key={step.num} color={step.color} delay={0.5 + i * 0.12} />
+              ))}
+            </div>
+          </div>
+
+          {/* Right: key benefits */}
+          <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
+            className="flex flex-col gap-3 w-48 flex-shrink-0">
+            <div className="p-4 rounded-2xl border border-[#a855f7]/25 bg-[#a855f7]/6 flex flex-col gap-3">
+              <p className="text-[#a855f7] text-[10px] font-semibold uppercase tracking-widest">Key Benefits</p>
+              {[
+                { label: 'MTTR', value: '−60%', desc: 'vs manual triage' },
+                { label: 'Alert noise', value: '−80%', desc: 'via debounce + AI' },
+                { label: 'On-call load', value: '−45%', desc: 'automated RCA' },
+              ].map(b => (
+                <div key={b.label} className="border-t border-white/8 pt-2">
+                  <div className="text-2xl font-bold text-white">{b.value}</div>
+                  <div className="text-[#a855f7] text-[10px] font-semibold">{b.label}</div>
+                  <div className="text-white/50 text-[9px]">{b.desc}</div>
+                </div>
+              ))}
+            </div>
+            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-1">
+              <p className="text-white/55 text-[10px] uppercase tracking-widest font-semibold">Workflow Tech</p>
+              {['Kibana Workflows API (preview)', 'observability.agent LLM', 'Liquid template engine', 'YAML-as-code definition'].map(t => (
+                <div key={t} className="text-white/65 text-[10px] flex items-start gap-1.5">
+                  <span className="text-[#a855f7]">·</span>{t}
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
       </div>
     </SlideLayout>
   );

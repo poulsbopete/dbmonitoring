@@ -2,67 +2,117 @@ import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
 import { Check, X, Minus } from 'lucide-react';
 
-const rows = [
-  { feature: 'MySQL slow query analysis', elastic: true, datadog: true, dynatrace: false },
-  { feature: 'PostgreSQL deep metrics', elastic: true, datadog: true, dynatrace: 'partial' },
-  { feature: 'SQL Server (no premium add-on)', elastic: true, datadog: false, dynatrace: 'partial' },
-  { feature: 'MongoDB first-class support', elastic: true, datadog: false, dynatrace: false },
-  { feature: 'OpenTelemetry native ingestion', elastic: true, datadog: 'partial', dynatrace: 'partial' },
-  { feature: 'Custom ES|QL dashboards', elastic: true, datadog: false, dynatrace: false },
-  { feature: 'AI-powered root cause analysis', elastic: true, datadog: 'partial', dynatrace: 'partial' },
-  { feature: 'Unified logs + metrics + APM', elastic: true, datadog: true, dynatrace: true },
-  { feature: 'Predictable serverless pricing', elastic: true, datadog: false, dynatrace: false },
-  { feature: 'No proprietary agents required', elastic: true, datadog: false, dynatrace: false },
+const features = [
+  { label: 'MySQL Slow Query Log', elastic: 'full', dd: 'full', dt: 'full' },
+  { label: 'PostgreSQL Metrics', elastic: 'full', dd: 'full', dt: 'full' },
+  { label: 'SQL Server Metrics', elastic: 'full', dd: 'addon', dt: 'full' },
+  { label: 'MongoDB Metrics', elastic: 'full', dd: 'addon', dt: 'addon' },
+  { label: 'OpenTelemetry Native', elastic: 'full', dd: 'partial', dt: 'none' },
+  { label: 'No Proprietary Agents', elastic: 'full', dd: 'none', dt: 'none' },
+  { label: 'AI Root Cause Analysis', elastic: 'full', dd: 'partial', dt: 'partial' },
+  { label: 'Serverless / Per-Use Pricing', elastic: 'full', dd: 'none', dt: 'none' },
+  { label: 'ES|QL Query Engine', elastic: 'full', dd: 'none', dt: 'none' },
+  { label: 'TSDB Compression', elastic: 'full', dd: 'none', dt: 'none' },
 ];
 
-type CellValue = boolean | 'partial' | string;
+type Level = 'full' | 'partial' | 'addon' | 'none';
 
-function Cell({ value, color }: { value: CellValue; color: string }) {
-  if (value === true) return <Check size={15} style={{ color }} className="mx-auto" />;
-  if (value === 'partial') return <Minus size={15} className="mx-auto text-yellow-400/70" />;
-  return <X size={15} className="mx-auto text-red-400/50" />;
+function Cell({ level }: { level: Level }) {
+  if (level === 'full') return <Check size={14} className="text-emerald-400 mx-auto" />;
+  if (level === 'partial') return <Minus size={14} className="text-yellow-400 mx-auto" />;
+  if (level === 'addon') return <span className="text-yellow-400/80 text-[10px] block text-center">Add-on $</span>;
+  return <X size={13} className="text-red-400/70 mx-auto" />;
 }
+
+// Score bars
+const vendors = [
+  { name: 'Elastic', score: 10, color: '#1ba9f5' },
+  { name: 'Datadog', score: 6.5, color: '#632CA6' },
+  { name: 'Dynatrace', score: 6, color: '#1496ff' },
+];
 
 export function Slide08Comparison() {
   return (
-    <SlideLayout shadowColor="rgba(168, 85, 247, 0.4)" shadowSpeed={40} shadowScale={68}>
-      <div className="flex flex-col h-full px-10 py-8 gap-5 overflow-hidden">
+    <SlideLayout shadowColor="rgba(27, 169, 245, 0.4)" shadowSpeed={40} shadowScale={68}>
+      <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-[#a855f7] text-xs font-semibold tracking-widest uppercase mb-1">Competitive Analysis</p>
+          <p className="text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase mb-1">Feature Matrix</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
             Elastic vs Datadog vs Dynatrace
           </h2>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-          className="flex-1 min-h-0 rounded-2xl overflow-hidden border border-white/15 bg-white/2 flex flex-col">
-          {/* Header */}
-          <div className="grid grid-cols-[1fr_120px_120px_120px] border-b border-white/15 bg-white/4 flex-shrink-0">
-            <div className="px-4 py-2.5 text-white/70 text-[10px] uppercase tracking-widest">Feature</div>
-            <div className="px-4 py-2.5 text-center text-[#1ba9f5] font-semibold text-sm">Elastic</div>
-            <div className="px-4 py-2.5 text-center text-white/70 text-sm">Datadog</div>
-            <div className="px-4 py-2.5 text-center text-white/70 text-sm">Dynatrace</div>
-          </div>
-          {/* Rows */}
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {rows.map((row, i) => (
-              <motion.div key={row.feature}
-                initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.28 + i * 0.04 }}
-                className="grid grid-cols-[1fr_120px_120px_120px] border-b border-white/12 last:border-0 hover:bg-white/3 transition-colors flex-1">
-                <div className="px-4 flex items-center text-white/70 text-sm">{row.feature}</div>
-                <div className="px-4 flex items-center justify-center"><Cell value={row.elastic} color="#1ba9f5" /></div>
-                <div className="px-4 flex items-center justify-center"><Cell value={row.datadog} color="#1ba9f5" /></div>
-                <div className="px-4 flex items-center justify-center"><Cell value={row.dynatrace} color="#1ba9f5" /></div>
-              </motion.div>
-            ))}
-          </div>
-        </motion.div>
+        <div className="flex gap-5 flex-1 min-h-0">
+          {/* Table */}
+          <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
+            className="flex-1 min-h-0 overflow-hidden">
+            <div className="h-full overflow-auto rounded-xl border border-white/12 bg-white/5">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-white/12 bg-white/5">
+                    <th className="text-left px-4 py-2.5 text-white/60 font-semibold w-1/2">Capability</th>
+                    {['Elastic', 'Datadog', 'Dynatrace'].map(h => (
+                      <th key={h} className="px-3 py-2.5 text-center font-semibold text-white/80">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {features.map((f, i) => (
+                    <motion.tr key={f.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.25 + i * 0.05 }}
+                      className="border-b border-white/7 hover:bg-white/4 transition-colors">
+                      <td className="px-4 py-2 text-white/75">{f.label}</td>
+                      <td className="px-3 py-2"><Cell level={f.elastic as Level} /></td>
+                      <td className="px-3 py-2"><Cell level={f.dd as Level} /></td>
+                      <td className="px-3 py-2"><Cell level={f.dt as Level} /></td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
 
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
-          className="text-center text-white/20 text-[10px]">
-          <Minus size={10} className="inline mr-1 text-yellow-400/60" />Partial = limited or requires premium tier · Q1 2026
-        </motion.p>
+          {/* Score visualization */}
+          <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}
+            className="flex flex-col gap-4 w-48 flex-shrink-0 justify-between py-1">
+            <div>
+              <p className="text-white/55 text-[10px] uppercase tracking-widest font-semibold mb-3">Coverage Score</p>
+              {vendors.map((v, i) => (
+                <div key={v.name} className="mb-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-white/75 text-xs">{v.name}</span>
+                    <span className="text-xs font-bold" style={{ color: v.color }}>{v.score}/10</span>
+                  </div>
+                  <div className="h-2.5 bg-white/6 rounded-full overflow-hidden">
+                    <motion.div className="h-full rounded-full" style={{ background: v.color }}
+                      initial={{ width: 0 }} animate={{ width: `${v.score * 10}%` }}
+                      transition={{ delay: 0.5 + i * 0.1, duration: 0.8, ease: 'easeOut' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 rounded-xl border border-white/12 bg-white/6">
+              <p className="text-white/55 text-[10px] uppercase tracking-widest font-semibold mb-2">Legend</p>
+              {[
+                { icon: <Check size={12} className="text-emerald-400" />, label: 'Included' },
+                { icon: <Minus size={12} className="text-yellow-400" />, label: 'Partial' },
+                { icon: <span className="text-yellow-400/80 text-[9px]">$</span>, label: 'Paid add-on' },
+                { icon: <X size={11} className="text-red-400/70" />, label: 'Not available' },
+              ].map(l => (
+                <div key={l.label} className="flex items-center gap-2 mb-1">
+                  <div className="w-5 flex-shrink-0 flex justify-center">{l.icon}</div>
+                  <span className="text-white/60 text-[10px]">{l.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="p-3 rounded-xl border border-[#1ba9f5]/25 bg-[#1ba9f5]/8">
+              <p className="text-[#1ba9f5] text-xs font-semibold">Elastic wins on:</p>
+              <p className="text-white/65 text-[10px] leading-relaxed mt-1">OTel-native · AI RCA · serverless pricing · ES|QL flexibility</p>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </SlideLayout>
   );
