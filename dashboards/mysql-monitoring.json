@@ -4,115 +4,81 @@
   "time_range": { "from": "now-7d", "to": "now" },
   "panels": [
     {
-      "type": "lens", "uid": "mysql-kpi-slow",
+      "type": "metric", "uid": "mysql-kpi-slow",
       "grid": { "x": 0, "y": 0, "w": 12, "h": 5 },
-      "config": { "attributes": { "title": "", "type": "metric",
-          "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS `Total Slow Queries` = COUNT(*)" },
-          "metrics": [{ "type": "primary", "operation": "value", "column": "Total Slow Queries" }]
-      }}
+      "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS `Total Slow Queries` = COUNT(*)" },
+      "metrics": [{ "type": "primary", "operation": "value", "column": "Total Slow Queries" }]
     },
     {
-      "type": "lens", "uid": "mysql-kpi-avg",
+      "type": "metric", "uid": "mysql-kpi-avg",
       "grid": { "x": 12, "y": 0, "w": 12, "h": 5 },
-      "config": { "attributes": { "title": "", "type": "metric",
-          "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS `Avg Query Time (s)` = AVG(`mysql.slowlog.query_time`)" },
-          "metrics": [{ "type": "primary", "operation": "value", "column": "Avg Query Time (s)" }]
-      }}
+      "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS `Avg Query Time (s)` = AVG(`mysql.slowlog.query_time`)" },
+      "metrics": [{ "type": "primary", "operation": "value", "column": "Avg Query Time (s)" }]
     },
     {
-      "type": "lens", "uid": "mysql-kpi-max",
+      "type": "metric", "uid": "mysql-kpi-max",
       "grid": { "x": 24, "y": 0, "w": 12, "h": 5 },
-      "config": { "attributes": { "title": "", "type": "metric",
-          "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS `Max Query Time (s)` = MAX(`mysql.slowlog.query_time`)" },
-          "metrics": [{ "type": "primary", "operation": "value", "column": "Max Query Time (s)" }]
-      }}
+      "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS `Max Query Time (s)` = MAX(`mysql.slowlog.query_time`)" },
+      "metrics": [{ "type": "primary", "operation": "value", "column": "Max Query Time (s)" }]
     },
     {
-      "type": "lens", "uid": "mysql-kpi-errors",
+      "type": "metric", "uid": "mysql-kpi-errors",
       "grid": { "x": 36, "y": 0, "w": 12, "h": 5 },
-      "config": { "attributes": { "title": "", "type": "metric",
-          "dataset": { "type": "esql", "query": "FROM logs-mysql.error.otel-default | STATS `DB Errors` = COUNT(*)" },
-          "metrics": [{ "type": "primary", "operation": "value", "column": "DB Errors" }]
-      }}
+      "dataset": { "type": "esql", "query": "FROM logs-mysql.error.otel-default | STATS `DB Errors` = COUNT(*)" },
+      "metrics": [{ "type": "primary", "operation": "value", "column": "DB Errors" }]
     },
     {
-      "type": "lens", "uid": "mysql-slow-rate",
+      "type": "xy", "uid": "mysql-slow-rate",
+      "title": "Slow Query Rate by Database",
       "grid": { "x": 0, "y": 5, "w": 24, "h": 11 },
-      "config": { "attributes": { "title": "Slow Query Rate by Database", "type": "xy",
-          "legend": { "visibility": "visible", "position": "right" },
-          "layers": [{ "type": "area_stacked",
-            "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS count = COUNT(*) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `db.name`" },
-            "x": { "operation": "value", "column": "bucket" },
-            "y": [{ "operation": "value", "column": "count" }],
-            "breakdown_by": { "operation": "value", "column": "db.name" }
-          }]
-      }}
+      "layers": [{ "type": "area_stacked",
+        "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS count = COUNT(*) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `db.name`" },
+        "x": { "operation": "value", "column": "bucket" },
+        "y": [{ "operation": "value", "column": "count" }],
+        "breakdown_by": { "operation": "value", "column": "db.name" }
+      }]
     },
     {
-      "type": "lens", "uid": "mysql-query-time-trend",
+      "type": "xy", "uid": "mysql-query-time",
+      "title": "Avg Query Time by Database (s)",
       "grid": { "x": 24, "y": 5, "w": 24, "h": 11 },
-      "config": { "attributes": { "title": "Avg Query Time by Database (s)", "type": "xy",
-          "legend": { "visibility": "visible", "position": "right" },
-          "layers": [{ "type": "line",
-            "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS avg_time = AVG(`mysql.slowlog.query_time`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `db.name`" },
-            "x": { "operation": "value", "column": "bucket" },
-            "y": [{ "operation": "value", "column": "avg_time" }],
-            "breakdown_by": { "operation": "value", "column": "db.name" }
-          }]
-      }}
+      "layers": [{ "type": "line",
+        "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS avg_time = AVG(`mysql.slowlog.query_time`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `db.name`" },
+        "x": { "operation": "value", "column": "bucket" },
+        "y": [{ "operation": "value", "column": "avg_time" }],
+        "breakdown_by": { "operation": "value", "column": "db.name" }
+      }]
     },
     {
-      "type": "lens", "uid": "mysql-top-tables",
+      "type": "xy", "uid": "mysql-top-tables",
+      "title": "Top Tables by Slow Query Count",
       "grid": { "x": 0, "y": 16, "w": 24, "h": 11 },
-      "config": { "attributes": { "title": "Top Tables by Slow Query Count", "type": "xy",
-          "layers": [{ "type": "bar_horizontal",
-            "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS count = COUNT(*) BY `db.sql.table` | SORT count DESC | LIMIT 15" },
-            "x": { "operation": "value", "column": "db.sql.table" },
-            "y": [{ "operation": "value", "column": "count" }]
-          }]
-      }}
+      "layers": [{ "type": "bar_horizontal",
+        "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS count = COUNT(*) BY `db.sql.table` | SORT count DESC | LIMIT 15" },
+        "x": { "operation": "value", "column": "db.sql.table" },
+        "y": [{ "operation": "value", "column": "count" }]
+      }]
     },
     {
-      "type": "lens", "uid": "mysql-lock-vs-query",
+      "type": "xy", "uid": "mysql-lock-vs-query",
+      "title": "Avg Query vs Lock Time by Database",
       "grid": { "x": 24, "y": 16, "w": 24, "h": 11 },
-      "config": { "attributes": { "title": "Avg Query vs Lock Time by Database", "type": "xy",
-          "layers": [{ "type": "bar",
-            "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS avg_query = AVG(`mysql.slowlog.query_time`), avg_lock = AVG(`mysql.slowlog.lock_time`) BY `db.name`" },
-            "x": { "operation": "value", "column": "db.name" },
-            "y": [{ "operation": "value", "column": "avg_query" }, { "operation": "value", "column": "avg_lock" }]
-          }]
-      }}
+      "layers": [{ "type": "bar",
+        "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS avg_query = AVG(`mysql.slowlog.query_time`), avg_lock = AVG(`mysql.slowlog.lock_time`) BY `db.name`" },
+        "x": { "operation": "value", "column": "db.name" },
+        "y": [{ "operation": "value", "column": "avg_query" }, { "operation": "value", "column": "avg_lock" }]
+      }]
     },
     {
-      "type": "lens", "uid": "mysql-slowest-table",
-      "grid": { "x": 0, "y": 27, "w": 32, "h": 12 },
-      "config": { "attributes": { "title": "Slowest Queries by Table", "type": "datatable",
-          "dataset": { "type": "esql", "query": "FROM logs-mysql.slowlog.otel-default | STATS count = COUNT(*), avg_time = AVG(`mysql.slowlog.query_time`), max_time = MAX(`mysql.slowlog.query_time`), avg_rows_examined = AVG(`mysql.slowlog.rows_examined`) BY `db.sql.table`, `db.operation`, `db.name` | SORT avg_time DESC | LIMIT 15" },
-          "rows": [
-            { "operation": "value", "column": "db.sql.table" },
-            { "operation": "value", "column": "db.operation" },
-            { "operation": "value", "column": "db.name" }
-          ],
-          "metrics": [
-            { "operation": "value", "column": "count", "label": "Slow Queries" },
-            { "operation": "value", "column": "avg_time", "label": "Avg Time (s)" },
-            { "operation": "value", "column": "max_time", "label": "Max Time (s)" },
-            { "operation": "value", "column": "avg_rows_examined", "label": "Avg Rows Examined" }
-          ]
-      }}
-    },
-    {
-      "type": "lens", "uid": "mysql-error-trend",
-      "grid": { "x": 32, "y": 27, "w": 16, "h": 12 },
-      "config": { "attributes": { "title": "Error Log Trend", "type": "xy",
-          "legend": { "visibility": "visible", "position": "right" },
-          "layers": [{ "type": "bar_stacked",
-            "dataset": { "type": "esql", "query": "FROM logs-mysql.error.otel-default | STATS count = COUNT(*) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `log.level`" },
-            "x": { "operation": "value", "column": "bucket" },
-            "y": [{ "operation": "value", "column": "count" }],
-            "breakdown_by": { "operation": "value", "column": "log.level" }
-          }]
-      }}
+      "type": "xy", "uid": "mysql-error-trend",
+      "title": "Error Log Trend",
+      "grid": { "x": 0, "y": 27, "w": 48, "h": 11 },
+      "layers": [{ "type": "bar_stacked",
+        "dataset": { "type": "esql", "query": "FROM logs-mysql.error.otel-default | STATS count = COUNT(*) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `log.level`" },
+        "x": { "operation": "value", "column": "bucket" },
+        "y": [{ "operation": "value", "column": "count" }],
+        "breakdown_by": { "operation": "value", "column": "log.level" }
+      }]
     }
   ]
 }
