@@ -21,8 +21,12 @@ else
   echo "Generator already running (PID: $(pgrep -f db_otel_generator.py))."
 fi
 
+# Pull latest dashboard definitions from GitHub
+echo "Pulling latest dashboard files from GitHub..."
+git -C "$DB_REPO_DIR" pull --ff-only 2>&1 | tail -3 || true
+
 # Always re-deploy dashboards (Kibana may not have been ready during setup)
-echo "Deploying dashboards..."
+echo "Re-deploying dashboards..."
 mkdir -p /root/workshop/build/db-monitoring
 > /root/workshop/build/db-monitoring/dashboard-ids.txt
 
@@ -53,7 +57,7 @@ _deploy() {
     echo "$dash_id" >> /root/workshop/build/db-monitoring/dashboard-ids.txt
   else
     echo "  ✗ ${title}: HTTP ${http_code}"
-    echo "$body" | sed '$d' | head -c 200
+    echo "$body" | sed '$d' | python3 -m json.tool 2>/dev/null || echo "$body" | sed '$d'
   fi
 }
 

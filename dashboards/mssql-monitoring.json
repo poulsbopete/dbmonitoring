@@ -6,48 +6,39 @@
     {
       "type": "lens", "uid": "ms-kpi-connections",
       "grid": { "x": 0, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "User Connections",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS `User Connections` = MAX(`sqlserver.user.connection.count`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "User Connections" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-kpi-cache",
       "grid": { "x": 12, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "Buffer Cache Hit %",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS `Buffer Cache Hit %` = AVG(`sqlserver.page.buffer_cache.hit_ratio`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "Buffer Cache Hit %" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-kpi-lock-wait",
       "grid": { "x": 24, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "Avg Lock Wait (ms)",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS `Avg Lock Wait (ms)` = AVG(`sqlserver.lock.wait_time.avg`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "Avg Lock Wait (ms)" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-kpi-deadlocks",
       "grid": { "x": 36, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "Total Deadlocks",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS `Total Deadlocks` = MAX(`sqlserver.deadlock.count`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "Total Deadlocks" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-connections-trend",
       "grid": { "x": 0, "y": 5, "w": 24, "h": 11 },
-      "config": { "title": "User Connections Over Time",
-        "attributes": { "title": "User Connections Over Time", "type": "xy",
+      "config": { "attributes": { "title": "User Connections Over Time", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "area",
             "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS connections = AVG(`sqlserver.user.connection.count`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `service.name`" },
@@ -55,14 +46,12 @@
             "y": [{ "operation": "value", "column": "connections" }],
             "breakdown_by": { "operation": "value", "column": "service.name" }
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-lock-wait-trend",
       "grid": { "x": 24, "y": 5, "w": 24, "h": 11 },
-      "config": { "title": "Lock Wait Time (ms) Over Time",
-        "attributes": { "title": "Lock Wait Time (ms) Over Time", "type": "xy",
+      "config": { "attributes": { "title": "Lock Wait Time (ms) Over Time", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "line",
             "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS lock_wait = AVG(`sqlserver.lock.wait_time.avg`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `service.name`" },
@@ -70,14 +59,12 @@
             "y": [{ "operation": "value", "column": "lock_wait" }],
             "breakdown_by": { "operation": "value", "column": "service.name" }
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-io-latency",
       "grid": { "x": 0, "y": 16, "w": 24, "h": 11 },
-      "config": { "title": "I/O Read vs Write Latency by Database (ms)",
-        "attributes": { "title": "I/O Read vs Write Latency by Database (ms)", "type": "xy",
+      "config": { "attributes": { "title": "I/O Read vs Write Latency by Database (ms)", "type": "xy",
           "layers": [{ "type": "bar",
             "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS read_lat = AVG(`sqlserver.database.io.read_latency`), write_lat = AVG(`sqlserver.database.io.write_latency`) BY `sqlserver.database.name` | WHERE `sqlserver.database.name` IS NOT NULL | SORT read_lat DESC | LIMIT 10" },
             "x": { "operation": "value", "column": "sqlserver.database.name" },
@@ -86,14 +73,12 @@
               { "operation": "value", "column": "write_lat" }
             ]
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-batch-trend",
       "grid": { "x": 24, "y": 16, "w": 24, "h": 11 },
-      "config": { "title": "Batch Requests Over Time",
-        "attributes": { "title": "Batch Requests Over Time", "type": "xy",
+      "config": { "attributes": { "title": "Batch Requests Over Time", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "line",
             "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS batches = MAX(`sqlserver.batch_sql_request.count`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `service.name`" },
@@ -101,14 +86,12 @@
             "y": [{ "operation": "value", "column": "batches" }],
             "breakdown_by": { "operation": "value", "column": "service.name" }
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "ms-summary-table",
       "grid": { "x": 0, "y": 27, "w": 48, "h": 10 },
-      "config": { "title": "Instance Summary",
-        "attributes": { "title": "Instance Summary", "type": "data_table",
+      "config": { "attributes": { "title": "Instance Summary", "type": "datatable",
           "dataset": { "type": "esql", "query": "FROM metrics-sqlserverreceiver.otel-default | STATS max_conns = MAX(`sqlserver.user.connection.count`), avg_cache = AVG(`sqlserver.page.buffer_cache.hit_ratio`), avg_lock_wait = AVG(`sqlserver.lock.wait_time.avg`), total_deadlocks = MAX(`sqlserver.deadlock.count`) BY `service.name` | SORT max_conns DESC" },
           "rows": [{ "operation": "value", "column": "service.name" }],
           "metrics": [
@@ -117,8 +100,7 @@
             { "operation": "value", "column": "avg_lock_wait", "label": "Avg Lock Wait (ms)" },
             { "operation": "value", "column": "total_deadlocks", "label": "Deadlocks" }
           ]
-        }
-      }
+      }}
     }
   ]
 }

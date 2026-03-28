@@ -6,48 +6,39 @@
     {
       "type": "lens", "uid": "mdb-kpi-connections",
       "grid": { "x": 0, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "Active Connections",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS `Active Connections` = MAX(`mongodb.connection.count`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "Active Connections" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-kpi-memory",
       "grid": { "x": 12, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "Memory Usage (bytes)",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS `Memory Usage` = MAX(`mongodb.memory.usage`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "Memory Usage" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-kpi-ops",
       "grid": { "x": 24, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "Total Operations",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS `Total Operations` = MAX(`mongodb.operation.count`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "Total Operations" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-kpi-repl-lag",
       "grid": { "x": 36, "y": 0, "w": 12, "h": 5 },
-      "config": { "title": "Replication Lag (s)",
-        "attributes": { "title": "", "type": "metric",
+      "config": { "attributes": { "title": "", "type": "metric",
           "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS `Replication Lag (s)` = AVG(`mongodb.replication.lag`)" },
           "metrics": [{ "type": "primary", "operation": "value", "column": "Replication Lag (s)" }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-ops-trend",
       "grid": { "x": 0, "y": 5, "w": 24, "h": 11 },
-      "config": { "title": "Operations Over Time by Type",
-        "attributes": { "title": "Operations Over Time by Type", "type": "xy",
+      "config": { "attributes": { "title": "Operations Over Time by Type", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "area_stacked",
             "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS ops = MAX(`mongodb.operation.count`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL" },
@@ -55,14 +46,12 @@
             "y": [{ "operation": "value", "column": "ops" }],
             "breakdown_by": { "operation": "value", "column": "mongodb.operation.type" }
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-connections-trend",
       "grid": { "x": 24, "y": 5, "w": 24, "h": 11 },
-      "config": { "title": "Connections by Instance",
-        "attributes": { "title": "Connections by Instance", "type": "xy",
+      "config": { "attributes": { "title": "Connections by Instance", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "line",
             "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS conns = AVG(`mongodb.connection.count`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `service.name`" },
@@ -70,14 +59,12 @@
             "y": [{ "operation": "value", "column": "conns" }],
             "breakdown_by": { "operation": "value", "column": "service.name" }
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-docs-trend",
       "grid": { "x": 0, "y": 16, "w": 24, "h": 11 },
-      "config": { "title": "Document Operations Over Time",
-        "attributes": { "title": "Document Operations Over Time", "type": "xy",
+      "config": { "attributes": { "title": "Document Operations Over Time", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "line",
             "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS docs = MAX(`mongodb.document.operation.count`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend), `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL" },
@@ -85,49 +72,42 @@
             "y": [{ "operation": "value", "column": "docs" }],
             "breakdown_by": { "operation": "value", "column": "mongodb.operation.type" }
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-memory-trend",
       "grid": { "x": 24, "y": 16, "w": 24, "h": 11 },
-      "config": { "title": "Memory Usage Over Time",
-        "attributes": { "title": "Memory Usage Over Time", "type": "xy",
+      "config": { "attributes": { "title": "Memory Usage Over Time", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "area",
             "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS resident = AVG(`mongodb.memory.usage`), virtual = AVG(`mongodb.memory.virtual`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend)" },
             "x": { "operation": "value", "column": "bucket" },
             "y": [{ "operation": "value", "column": "resident" }, { "operation": "value", "column": "virtual" }]
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-db-size-bars",
       "grid": { "x": 0, "y": 27, "w": 24, "h": 10 },
-      "config": { "title": "Database Size",
-        "attributes": { "title": "Database Size", "type": "xy",
+      "config": { "attributes": { "title": "Database Size", "type": "xy",
           "layers": [{ "type": "bar_horizontal",
             "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS size = MAX(`mongodb.database.size`) BY `mongodb.database.name` | WHERE `mongodb.database.name` IS NOT NULL | SORT size DESC | LIMIT 10" },
             "x": { "operation": "value", "column": "mongodb.database.name" },
             "y": [{ "operation": "value", "column": "size" }]
           }]
-        }
-      }
+      }}
     },
     {
       "type": "lens", "uid": "mdb-network",
       "grid": { "x": 24, "y": 27, "w": 24, "h": 10 },
-      "config": { "title": "Network In / Out (bytes)",
-        "attributes": { "title": "Network In / Out (bytes)", "type": "xy",
+      "config": { "attributes": { "title": "Network In / Out (bytes)", "type": "xy",
           "legend": { "visibility": "visible", "position": "right" },
           "layers": [{ "type": "line",
             "dataset": { "type": "esql", "query": "FROM metrics-mongodbatlas.otel-default | STATS net_in = MAX(`mongodb.network.io.receive`), net_out = MAX(`mongodb.network.io.transmit`) BY bucket = BUCKET(@timestamp, 75, ?_tstart, ?_tend)" },
             "x": { "operation": "value", "column": "bucket" },
             "y": [{ "operation": "value", "column": "net_in" }, { "operation": "value", "column": "net_out" }]
           }]
-        }
-      }
+      }}
     }
   ]
 }
