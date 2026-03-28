@@ -181,16 +181,16 @@ def build_postgres():
     kpi_lim = create_lens("Connection Limit", "lnsMetric", esql_state_metric(
         "FROM metrics-postgresqlreceiver.otel.otel-default | STATS `Connection Limit` = MAX(`postgresql.connection.max`)", "Connection Limit"))
     conn_t = create_lens("Active Connections Over Time", "lnsXY", esql_state_xy(
-        "FROM metrics-postgresqlreceiver.otel.otel-default | STATS backends = AVG(`postgresql.backends`) BY bucket = BUCKET(@timestamp, 1 hour), `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL",
+        "FROM metrics-postgresqlreceiver.otel.otel-default | STATS backends = AVG(`postgresql.backends`) BY bucket = BUCKET(@timestamp, 5 minute), `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL",
         "area_stacked", "bucket", ["backends"], "postgresql.database.name"))
     size_b = create_lens("Database Size by Database", "lnsXY", esql_state_xy(
         "FROM metrics-postgresqlreceiver.otel.otel-default | STATS db_size = MAX(`postgresql.db_size`) BY `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL | SORT db_size DESC | LIMIT 10",
         "bar_horizontal", "postgresql.database.name", ["db_size"], x_type="string"))
     deadlocks = create_lens("Deadlocks Over Time by Database", "lnsXY", esql_state_xy(
-        "FROM metrics-postgresqlreceiver.otel.otel-default | EVAL _dl = TO_DOUBLE(`postgresql.deadlocks`) | STATS deadlocks = MAX(_dl) BY bucket = BUCKET(@timestamp, 1 hour), `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL",
+        "FROM metrics-postgresqlreceiver.otel.otel-default | EVAL _dl = TO_DOUBLE(`postgresql.deadlocks`) | STATS deadlocks = MAX(_dl) BY bucket = BUCKET(@timestamp, 5 minute), `postgresql.database.name` | WHERE `postgresql.database.name` IS NOT NULL",
         "bar_stacked", "bucket", ["deadlocks"], "postgresql.database.name"))
     rows = create_lens("Rows Inserted / Updated / Deleted", "lnsXY", esql_state_xy(
-        "FROM metrics-postgresqlreceiver.otel.otel-default | EVAL _ins = TO_DOUBLE(`postgresql.tup_inserted`), _upd = TO_DOUBLE(`postgresql.tup_updated`), _del = TO_DOUBLE(`postgresql.tup_deleted`) | STATS inserted = MAX(_ins), updated = MAX(_upd), deleted = MAX(_del) BY bucket = BUCKET(@timestamp, 1 hour)",
+        "FROM metrics-postgresqlreceiver.otel.otel-default | EVAL _ins = TO_DOUBLE(`postgresql.tup_inserted`), _upd = TO_DOUBLE(`postgresql.tup_updated`), _del = TO_DOUBLE(`postgresql.tup_deleted`) | STATS inserted = MAX(_ins), updated = MAX(_upd), deleted = MAX(_del) BY bucket = BUCKET(@timestamp, 5 minute)",
         "line", "bucket", ["inserted", "updated", "deleted"]))
 
     return create_dashboard(
@@ -219,16 +219,16 @@ def build_mssql():
     kpi_dead  = create_lens("Total Deadlocks", "lnsMetric", esql_state_metric(
         "FROM metrics-sqlserverreceiver.otel.otel-default | EVAL _dl = TO_DOUBLE(`sqlserver.deadlock.count`) | STATS `Total Deadlocks` = MAX(_dl)", "Total Deadlocks"))
     conn_t    = create_lens("User Connections Over Time", "lnsXY", esql_state_xy(
-        "FROM metrics-sqlserverreceiver.otel.otel-default | STATS connections = AVG(`sqlserver.user.connection.count`) BY bucket = BUCKET(@timestamp, 1 hour), `service.name`",
+        "FROM metrics-sqlserverreceiver.otel.otel-default | STATS connections = AVG(`sqlserver.user.connection.count`) BY bucket = BUCKET(@timestamp, 5 minute), `service.name`",
         "area", "bucket", ["connections"], "service.name"))
     lock_t    = create_lens("Lock Wait Time (ms) Over Time", "lnsXY", esql_state_xy(
-        "FROM metrics-sqlserverreceiver.otel.otel-default | STATS lock_wait = AVG(`sqlserver.lock.wait_time.avg`) BY bucket = BUCKET(@timestamp, 1 hour), `service.name`",
+        "FROM metrics-sqlserverreceiver.otel.otel-default | STATS lock_wait = AVG(`sqlserver.lock.wait_time.avg`) BY bucket = BUCKET(@timestamp, 5 minute), `service.name`",
         "line", "bucket", ["lock_wait"], "service.name"))
     io_lat    = create_lens("I/O Read vs Write Latency by Database", "lnsXY", esql_state_xy(
         "FROM metrics-sqlserverreceiver.otel.otel-default | STATS read_lat = AVG(`sqlserver.database.io.read_latency`), write_lat = AVG(`sqlserver.database.io.write_latency`) BY `sqlserver.database.name` | WHERE `sqlserver.database.name` IS NOT NULL | SORT read_lat DESC | LIMIT 10",
         "bar", "sqlserver.database.name", ["read_lat", "write_lat"], x_type="string"))
     batches   = create_lens("Batch Requests Over Time", "lnsXY", esql_state_xy(
-        "FROM metrics-sqlserverreceiver.otel.otel-default | EVAL _b = TO_DOUBLE(`sqlserver.batch_sql_request.count`) | STATS batches = MAX(_b) BY bucket = BUCKET(@timestamp, 1 hour), `service.name`",
+        "FROM metrics-sqlserverreceiver.otel.otel-default | EVAL _b = TO_DOUBLE(`sqlserver.batch_sql_request.count`) | STATS batches = MAX(_b) BY bucket = BUCKET(@timestamp, 5 minute), `service.name`",
         "line", "bucket", ["batches"], "service.name"))
 
     return create_dashboard(
@@ -257,16 +257,16 @@ def build_mongodb():
     kpi_repl = create_lens("Replication Lag (s)", "lnsMetric", esql_state_metric(
         "FROM metrics-mongodbatlas.otel.otel-default | STATS `Replication Lag (s)` = AVG(`mongodb.replication.lag`)", "Replication Lag (s)"))
     ops_t    = create_lens("Operations Over Time by Type", "lnsXY", esql_state_xy(
-        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _ops = TO_DOUBLE(`mongodb.operation.count`) | STATS ops = MAX(_ops) BY bucket = BUCKET(@timestamp, 1 hour), `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL",
+        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _ops = TO_DOUBLE(`mongodb.operation.count`) | STATS ops = MAX(_ops) BY bucket = BUCKET(@timestamp, 5 minute), `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL",
         "area_stacked", "bucket", ["ops"], "mongodb.operation.type"))
     conn_t   = create_lens("Connections by Instance", "lnsXY", esql_state_xy(
-        "FROM metrics-mongodbatlas.otel.otel-default | STATS conns = AVG(`mongodb.connection.count`) BY bucket = BUCKET(@timestamp, 1 hour), `service.name`",
+        "FROM metrics-mongodbatlas.otel.otel-default | STATS conns = AVG(`mongodb.connection.count`) BY bucket = BUCKET(@timestamp, 5 minute), `service.name`",
         "line", "bucket", ["conns"], "service.name"))
     mem_t    = create_lens("Memory: Resident vs Virtual (GB)", "lnsXY", esql_state_xy(
-        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _res = `mongodb.memory.usage` / 1073741824.0, _virt = `mongodb.memory.virtual` / 1073741824.0 | STATS resident = ROUND(AVG(_res), 2), virtual = ROUND(AVG(_virt), 2) BY bucket = BUCKET(@timestamp, 1 hour)",
+        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _res = `mongodb.memory.usage` / 1073741824.0, _virt = `mongodb.memory.virtual` / 1073741824.0 | STATS resident = ROUND(AVG(_res), 2), virtual = ROUND(AVG(_virt), 2) BY bucket = BUCKET(@timestamp, 5 minute)",
         "area", "bucket", ["resident", "virtual"]))
     docs     = create_lens("Document Operations Over Time", "lnsXY", esql_state_xy(
-        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _docs = TO_DOUBLE(`mongodb.document.operation.count`) | STATS docs = MAX(_docs) BY bucket = BUCKET(@timestamp, 1 hour), `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL",
+        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _docs = TO_DOUBLE(`mongodb.document.operation.count`) | STATS docs = MAX(_docs) BY bucket = BUCKET(@timestamp, 5 minute), `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL",
         "line", "bucket", ["docs"], "mongodb.operation.type"))
 
     return create_dashboard(
