@@ -543,12 +543,21 @@ def send_mongodb(endpoint: str, auth: str, dt: datetime, load: float, _state: di
 # ---------------------------------------------------------------------------
 
 def generate_window(endpoint: str, auth: str, dt: datetime,
-                    pg_state: dict, ms_state: dict, mdb_state: dict):
+                    pg_state: dict, ms_state: dict, mdb_state: dict,
+                    metrics_now: datetime = None):
+    """Send one interval of data for all 4 DB types.
+
+    MySQL slow/error logs use the historical ``dt`` timestamp — LogsDB accepts
+    any timestamp.  TSDB metrics streams only accept documents within a ~2 hour
+    rolling window, so PostgreSQL/SQL Server/MongoDB always use ``metrics_now``
+    (current wall-clock time) to avoid timestamp_error failures.
+    """
     load = business_load(dt)
+    ts_metrics = metrics_now or datetime.now(timezone.utc)
     send_mysql(endpoint, auth, dt, load)
-    send_postgres(endpoint, auth, dt, load, pg_state)
-    send_mssql(endpoint, auth, dt, load, ms_state)
-    send_mongodb(endpoint, auth, dt, load, mdb_state)
+    send_postgres(endpoint, auth, ts_metrics, load, pg_state)
+    send_mssql(endpoint, auth, ts_metrics, load, ms_state)
+    send_mongodb(endpoint, auth, ts_metrics, load, mdb_state)
 
 
 def main():
@@ -558,7 +567,7 @@ def main():
     parser.add_argument("--otlp-auth", required=True,
                         help="Authorization header value (e.g. 'ApiKey xxxx==')")
     parser.add_argument("--historical-days", type=int, default=4,
-                        help="Days of historical data to seed (default: 4)")
+                        help="Days of historical MySQL log data to seed (default: 4)")
     parser.add_argument("--live", action="store_true",
                         help="Keep running and send live data every 60 s")
     parser.add_argument("--interval-minutes", type=int, default=5,
@@ -575,13 +584,15 @@ def main():
     total = int((now - start) / step)
 
     print(f"Generating {args.historical_days}d historical data "
-          f"({total} intervals × 5-min, 4 databases)…")
+          f"({total} intervals × {args.interval_minutes}-min)…")
+    print("  MySQL logs: historical timestamps | PG/MSSQL/MongoDB metrics: current timestamp (TSDB window)")
 
     dt = start
     i = 0
     while dt <= now:
+        now_wall = datetime.now(timezone.utc)
         generate_window(args.otlp_endpoint, args.otlp_auth, dt,
-                        pg_state, ms_state, mdb_state)
+                        pg_state, ms_state, mdb_state, metrics_now=now_wall)
         i += 1
         if i % 50 == 0:
             pct = int(100 * i / total)
@@ -596,7 +607,7 @@ def main():
             time.sleep(60)
             now = datetime.now(timezone.utc)
             generate_window(args.otlp_endpoint, args.otlp_auth, now,
-                            pg_state, ms_state, mdb_state)
+                            pg_state, ms_state, mdb_state, metrics_now=now)
             print(f"  Live tick {now.strftime('%H:%M:%S')}")
 
 
