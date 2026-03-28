@@ -217,61 +217,15 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Deploy Kibana dashboards (one per database platform)
+# 7. Deploy Kibana dashboards via Saved Objects API (all Kibana versions)
 # ---------------------------------------------------------------------------
-_deploy_dashboard() {
-  local title="$1" file="$2"
-  echo "Deploying dashboard: ${title}"
-  local payload body http_code
-  payload="$(cat "$file")"
-  body="$(curl -s -w "\n%{http_code}" \
-    -X POST "${KIBANA_URL}/api/dashboards" \
-    -H "Content-Type: application/json" \
-    -H "kbn-xsrf: true" \
-    -H "Authorization: ApiKey ${WORKSHOP_ES_API_KEY:-}" \
-    -H "Elastic-Api-Version: 1" \
-    -d "$payload" 2>/dev/null || true)"
-  http_code="$(echo "$body" | tail -n1)"
-  response="$(echo "$body" | sed '$d')"
-  if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-    dash_id="$(echo "$response" | jq -r '.item.id // .id // empty')"
-    echo "  ✓ ${title} → id=${dash_id}"
-    echo "$dash_id" >> /root/workshop/build/db-monitoring/dashboard-ids.txt
-    return 0
-  fi
-  echo "  WARN as-code API → HTTP ${http_code}: ${response:0:200}" >&2
-
-  # Fallback: Kibana Saved Objects API
-  local so_id
-  so_id="$(echo "$title" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-')"
-  body="$(curl -s -w "\n%{http_code}" \
-    -X POST "${KIBANA_URL}/api/saved_objects/dashboard/${so_id}" \
-    -H "Content-Type: application/json" \
-    -H "kbn-xsrf: true" \
-    -H "Authorization: ApiKey ${WORKSHOP_ES_API_KEY:-}" \
-    -d "{\"attributes\":{\"title\":\"${title}\",\"panelsJSON\":\"[]\",\"optionsJSON\":\"{}\"}}" \
-    2>/dev/null || true)"
-  http_code="$(echo "$body" | tail -n1)"
-  response="$(echo "$body" | sed '$d')"
-  if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-    echo "  ✓ ${title} (saved-objects fallback) → id=${so_id}"
-    echo "$so_id" >> /root/workshop/build/db-monitoring/dashboard-ids.txt
-  else
-    echo "  WARN saved-objects fallback → HTTP ${http_code}" >&2
-  fi
-}
-
 if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
-  # Give the project 20 s to reach fully ready state before pushing dashboards
+  export ES_API_KEY="$WORKSHOP_ES_API_KEY"
+  # Give the project 20 s to reach a fully ready state before pushing dashboards
   sleep 20
-  _deploy_dashboard "MySQL — Slow Query & Error Monitoring" \
-    "$DB_REPO_DIR/dashboards/mysql-monitoring.json"
-  _deploy_dashboard "PostgreSQL — Performance & Health" \
-    "$DB_REPO_DIR/dashboards/postgres-monitoring.json"
-  _deploy_dashboard "SQL Server — Performance & Health" \
-    "$DB_REPO_DIR/dashboards/mssql-monitoring.json"
-  _deploy_dashboard "MongoDB — Operations & Health" \
-    "$DB_REPO_DIR/dashboards/mongodb-monitoring.json"
+  echo "Deploying dashboards..."
+  /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/tools/deploy_dashboards.py" \
+    2>&1 | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log || true
 else
   echo "WARN: ES_API_KEY not set — skipping dashboard deployment." >&2
 fi

@@ -21,50 +21,21 @@ else
   echo "Generator already running (PID: $(pgrep -f db_otel_generator.py))."
 fi
 
-# Pull latest dashboard definitions from GitHub
-echo "Pulling latest dashboard files from GitHub..."
+# Pull latest files from GitHub
+echo "Pulling latest files from GitHub..."
 git -C "$DB_REPO_DIR" pull --ff-only 2>&1 | tail -3 || true
 
-# Always re-deploy dashboards (Kibana may not have been ready during setup)
-echo "Re-deploying dashboards..."
-mkdir -p /root/workshop/build/db-monitoring
-> /root/workshop/build/db-monitoring/dashboard-ids.txt
-
-_deploy() {
-  local title="$1" file="$2"
-  local body http_code dash_id
-
-  # Wait for Kibana to be ready
-  for i in $(seq 1 10); do
-    status=$(curl -s -o /dev/null -w "%{http_code}" \
-      -H "Authorization: ApiKey ${ES_API_KEY}" \
-      "${KIBANA_URL}/api/status" 2>/dev/null || echo "000")
-    [ "$status" = "200" ] && break
-    echo "  Waiting for Kibana... (${i}/10)"
-    sleep 5
-  done
-
-  body="$(curl -s -w "\n%{http_code}" \
-    -X POST "${KIBANA_URL}/api/dashboards" \
-    -H "Content-Type: application/json" -H "kbn-xsrf: true" \
+# Wait for Kibana to be ready
+echo "Waiting for Kibana..."
+for i in $(seq 1 12); do
+  status=$(curl -s -o /dev/null -w "%{http_code}" \
     -H "Authorization: ApiKey ${ES_API_KEY}" \
-    -H "Elastic-Api-Version: 1" \
-    -d "$(cat "$file")" 2>/dev/null || true)"
-  http_code="$(echo "$body" | tail -n1)"
-  if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-    dash_id="$(echo "$body" | sed '$d' | jq -r '.item.id // .id // empty')"
-    echo "  ✓ ${title} (id=${dash_id})"
-    echo "$dash_id" >> /root/workshop/build/db-monitoring/dashboard-ids.txt
-  else
-    echo "  ✗ ${title}: HTTP ${http_code}"
-    echo "$body" | sed '$d' | python3 -m json.tool 2>/dev/null || echo "$body" | sed '$d'
-  fi
-}
+    "${KIBANA_URL}/api/status" 2>/dev/null || echo "000")
+  [ "$status" = "200" ] && break
+  echo "  Kibana not ready yet (${i}/12) — waiting 5s..."
+  sleep 5
+done
 
-_deploy "MySQL — Slow Query & Error Monitoring"   "$DB_REPO_DIR/dashboards/mysql-monitoring.json"
-_deploy "PostgreSQL — Performance & Health"        "$DB_REPO_DIR/dashboards/postgres-monitoring.json"
-_deploy "SQL Server — Performance & Health"        "$DB_REPO_DIR/dashboards/mssql-monitoring.json"
-_deploy "MongoDB — Operations & Health"            "$DB_REPO_DIR/dashboards/mongodb-monitoring.json"
-
-echo ""
-echo "Done. Refresh Kibana → Dashboards."
+# Deploy dashboards via Saved Objects API (works with all Kibana versions)
+echo "Deploying dashboards..."
+/opt/workshop-venv/bin/python3 "$DB_REPO_DIR/tools/deploy_dashboards.py"
