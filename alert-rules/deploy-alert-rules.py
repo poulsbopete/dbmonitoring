@@ -131,6 +131,7 @@ RULES = [
                 "index": {
                     "id": "metrics-postgresqlreceiver.otel.otel-default",
                     "title": "metrics-postgresqlreceiver.otel.otel-default",
+                    "timeFieldName": "@timestamp",
                 },
                 "query": {"language": "kuery", "query": ""},
             },
@@ -159,6 +160,7 @@ RULES = [
                 "index": {
                     "id": "metrics-sqlserverreceiver.otel.otel-default",
                     "title": "metrics-sqlserverreceiver.otel.otel-default",
+                    "timeFieldName": "@timestamp",
                 },
                 "query": {"language": "kuery", "query": ""},
             },
@@ -186,6 +188,7 @@ RULES = [
                 "index": {
                     "id": "metrics-mongodbatlas.otel.otel-default",
                     "title": "metrics-mongodbatlas.otel.otel-default",
+                    "timeFieldName": "@timestamp",
                 },
                 "query": {"language": "kuery", "query": ""},
             },
