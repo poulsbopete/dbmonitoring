@@ -50,8 +50,12 @@ export function SlideLayout({
           backgroundSize: '64px 64px',
         }}
       />
-      {/* Content */}
-      <div className="relative z-10 w-full h-full">{children}</div>
+      {/* Content — centered column */}
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center">
+        <div className="w-full max-w-5xl h-full flex flex-col">
+          {children}
+        </div>
+      </div>
     </motion.div>
   );
 }
