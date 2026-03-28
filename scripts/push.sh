@@ -19,7 +19,9 @@ git -C "$REPO_ROOT" checkout -- "$TRACK_DIR"
 
 echo ""
 echo "=== Pushing Instruqt track ==="
-instruqt track push
+# After pulling, use --force to push content changes.
+# Secrets/sandbox config are safe because we pulled first (pull captures them).
+instruqt track push --force
 
 echo ""
 echo "Done. Track: https://play.instruqt.com/manage/elastic/tracks/serverless-db-monitoring"
