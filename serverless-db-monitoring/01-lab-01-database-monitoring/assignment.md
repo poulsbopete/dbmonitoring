@@ -36,7 +36,7 @@ notes:
          Kibana Dashboards  (4 deployed automatically)
     ```
 
-    No Grafana Alloy. No proprietary agent. Pure OpenTelemetry.
+    No proprietary agents. Pure OpenTelemetry.
 - type: text
   contents: |
     ## Elastic vs Datadog Database Monitoring (DBM) vs Dynatrace
