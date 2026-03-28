@@ -237,7 +237,20 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 8. Write ~/.bashrc env for interactive terminal sessions
+# 8. Deploy alert rules + RCA workflow
+# ---------------------------------------------------------------------------
+if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
+  echo "Deploying alert rules and RCA workflow..."
+  alert_out=$(KIBANA_URL="$KIBANA_URL" ES_API_KEY="$WORKSHOP_ES_API_KEY" \
+    /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/alert-rules/deploy-alert-rules.py" 2>&1 || true)
+  echo "$alert_out" | tee -a /tmp/db-monitoring-logs/alert-rules-deploy.log
+  echo "✓ Alert rules deployment complete"
+else
+  echo "WARN: ES_API_KEY not set — skipping alert rules deployment." >&2
+fi
+
+# ---------------------------------------------------------------------------
+# 9. Write ~/.bashrc env for interactive terminal sessions
 # ---------------------------------------------------------------------------
 {
   echo ""
@@ -259,4 +272,4 @@ fi
 
 find "$DB_REPO_DIR" -type f \( -name 'setup-es3-api' -o -name 'check-es3-api' -o -name 'solve-es3-api' -o -name 'cleanup-es3-api' \) -exec chmod +x {} \; || true
 
-echo "=== Track bootstrap complete. Data generating in background. ==="
+echo "=== Track bootstrap complete. Data generating, dashboards and alerts deployed. ==="
