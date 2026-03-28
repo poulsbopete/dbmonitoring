@@ -1,5 +1,5 @@
 #!/bin/bash
-# Restart the DB monitoring data generator and re-deploy dashboards if needed.
+# Restart the DB monitoring data generator and re-deploy all dashboards.
 
 set -euo pipefail
 source /root/.bashrc || true
@@ -18,35 +18,49 @@ if ! pgrep -f db_otel_generator.py > /dev/null 2>&1; then
     >> /tmp/db-monitoring-logs/generator.log 2>&1 &
   echo "Generator PID: $! (log: /tmp/db-monitoring-logs/generator.log)"
 else
-  echo "Generator already running."
+  echo "Generator already running (PID: $(pgrep -f db_otel_generator.py))."
 fi
 
-# Re-deploy dashboards if IDs file is missing/empty
-if [ ! -s /root/workshop/build/db-monitoring/dashboard-ids.txt ]; then
-  echo "Re-deploying dashboards..."
-  mkdir -p /root/workshop/build/db-monitoring
+# Always re-deploy dashboards (Kibana may not have been ready during setup)
+echo "Deploying dashboards..."
+mkdir -p /root/workshop/build/db-monitoring
+> /root/workshop/build/db-monitoring/dashboard-ids.txt
 
-  _deploy() {
-    local title="$1" file="$2"
-    local body http_code
-    body="$(curl -s -w "\n%{http_code}" \
-      -X POST "${KIBANA_URL}/api/dashboards" \
-      -H "Content-Type: application/json" -H "kbn-xsrf: true" \
+_deploy() {
+  local title="$1" file="$2"
+  local body http_code dash_id
+
+  # Wait for Kibana to be ready
+  for i in $(seq 1 10); do
+    status=$(curl -s -o /dev/null -w "%{http_code}" \
       -H "Authorization: ApiKey ${ES_API_KEY}" \
-      -H "Elastic-Api-Version: 1" \
-      -d "$(cat "$file")" 2>/dev/null || true)"
-    http_code="$(echo "$body" | tail -n1)"
-    echo "  ${title}: HTTP ${http_code}"
-    if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
-      echo "$body" | sed '$d' | jq -r '.item.id // .id // empty' \
-        >> /root/workshop/build/db-monitoring/dashboard-ids.txt
-    fi
-  }
+      "${KIBANA_URL}/api/status" 2>/dev/null || echo "000")
+    [ "$status" = "200" ] && break
+    echo "  Waiting for Kibana... (${i}/10)"
+    sleep 5
+  done
 
-  _deploy "MySQL — Slow Query & Error Monitoring"   "$DB_REPO_DIR/dashboards/mysql-monitoring.json"
-  _deploy "PostgreSQL — Performance & Health"        "$DB_REPO_DIR/dashboards/postgres-monitoring.json"
-  _deploy "SQL Server — Performance & Health"        "$DB_REPO_DIR/dashboards/mssql-monitoring.json"
-  _deploy "MongoDB — Operations & Health"            "$DB_REPO_DIR/dashboards/mongodb-monitoring.json"
-fi
+  body="$(curl -s -w "\n%{http_code}" \
+    -X POST "${KIBANA_URL}/api/dashboards" \
+    -H "Content-Type: application/json" -H "kbn-xsrf: true" \
+    -H "Authorization: ApiKey ${ES_API_KEY}" \
+    -H "Elastic-Api-Version: 1" \
+    -d "$(cat "$file")" 2>/dev/null || true)"
+  http_code="$(echo "$body" | tail -n1)"
+  if [ "$http_code" = "200" ] || [ "$http_code" = "201" ]; then
+    dash_id="$(echo "$body" | sed '$d' | jq -r '.item.id // .id // empty')"
+    echo "  ✓ ${title} (id=${dash_id})"
+    echo "$dash_id" >> /root/workshop/build/db-monitoring/dashboard-ids.txt
+  else
+    echo "  ✗ ${title}: HTTP ${http_code}"
+    echo "$body" | sed '$d' | head -c 200
+  fi
+}
 
-echo "Done. Open Kibana → Dashboards to explore."
+_deploy "MySQL — Slow Query & Error Monitoring"   "$DB_REPO_DIR/dashboards/mysql-monitoring.json"
+_deploy "PostgreSQL — Performance & Health"        "$DB_REPO_DIR/dashboards/postgres-monitoring.json"
+_deploy "SQL Server — Performance & Health"        "$DB_REPO_DIR/dashboards/mssql-monitoring.json"
+_deploy "MongoDB — Operations & Health"            "$DB_REPO_DIR/dashboards/mongodb-monitoring.json"
+
+echo ""
+echo "Done. Refresh Kibana → Dashboards."
