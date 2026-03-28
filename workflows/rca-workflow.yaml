@@ -1,0 +1,189 @@
+version: "1"
+name: Database Monitoring — Root Cause Analysis 🚨
+description: >
+  AI-powered Root Cause Analysis workflow for database monitoring alerts.
+  Investigates MySQL, PostgreSQL, SQL Server, and MongoDB anomalies using the
+  Observability AI Agent, then creates a case with a full investigation summary.
+enabled: true
+tags:
+  - RCA
+  - database-monitoring
+  - DEMO
+triggers:
+  - type: alert
+steps:
+  # Phase 1: AI investigates the alert using Observability Agent
+  - name: rca_analysis
+    type: kibana.request
+    with:
+      method: "POST"
+      path: "/api/agent_builder/converse"
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        input: |
+          Investigate the following database monitoring alert: {{ event | json }}
+
+          This alert was triggered by our database monitoring system covering MySQL, PostgreSQL,
+          SQL Server, and MongoDB. Please:
+          1. Query the relevant data streams to understand the scope of the issue
+          2. Look for correlated anomalies across all four database types
+          3. Identify the most likely root cause(s)
+          4. Suggest immediate remediation steps
+
+          Data streams to check:
+          - logs-mysql.slowlog.otel.otel-default (MySQL slow queries)
+          - logs-mysql.error.otel.otel-default (MySQL errors)
+          - metrics-postgresqlreceiver.otel.otel-default (PostgreSQL metrics)
+          - metrics-sqlserverreceiver.otel.otel-default (SQL Server metrics)
+          - metrics-mongodbatlas.otel.otel-default (MongoDB metrics)
+
+          Keep your investigation concise and focused. Use emojis to make the output readable. 🔍
+    timeout: 10m
+
+  # Phase 2: Generate a clear case title
+  - name: create_case_title
+    type: kibana.request
+    with:
+      method: "POST"
+      path: "/api/agent_builder/converse"
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        conversation_id: "{{ steps.rca_analysis.output.conversation_id }}"
+        input: |
+          Based on this investigation, generate a concise case title that clearly identifies
+          the database type, issue type, and severity. Only return the title, nothing else.
+          Format: [DB Type] — [Issue] ([Severity])
+    timeout: 5m
+
+  # Phase 3: Generate a detailed case description
+  - name: create_case_description
+    type: kibana.request
+    with:
+      method: "POST"
+      path: "/api/agent_builder/converse"
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        conversation_id: "{{ steps.rca_analysis.output.conversation_id }}"
+        input: |
+          Based on this investigation, write a 2-3 sentence case description suitable for
+          an incident ticket. Include: what was detected, which database(s) are affected,
+          and the suspected root cause. Only return the description, nothing else.
+    timeout: 5m
+
+  # Phase 4: Create the Observability case
+  - name: create_case
+    type: kibana.createCaseDefaultSpace
+    with:
+      connector:
+        fields: null
+        id: none
+        name: none
+        type: .none
+      description: "{{ steps.create_case_description.output.response.message }}"
+      owner: observability
+      settings:
+        syncAlerts: false
+      severity: medium
+      tags:
+        - database-monitoring
+        - rca
+        - ai-generated
+      title: "{{ steps.create_case_title.output.response.message }}"
+
+  # Phase 5: Attach the triggering alert to the case
+  - name: add_alert_to_case
+    type: kibana.request
+    with:
+      method: "POST"
+      path: "/api/cases/{{ steps.create_case.output.id }}/comments"
+      headers:
+        kbn-xsrf: "true"
+      body:
+        type: alert
+        owner: observability
+        alertId: "{{ event.alerts[0]._id }}"
+        index: "{{ event.alerts[0]._index }}"
+        rule:
+          id: "{{ event.rule.id }}"
+          name: "{{ event.rule.name }}"
+
+  # Phase 6: Fetch the full conversation with reasoning steps
+  - name: getConversation
+    type: kibana.request
+    with:
+      method: "GET"
+      path: "/api/agent_builder/conversations/{{ steps.rca_analysis.output.conversation_id }}"
+
+  # Phase 7: Add investigation trail to the case
+  - name: addReasoningToCase
+    type: kibana.request
+    with:
+      method: "POST"
+      path: "/api/cases/{{ steps.create_case.output.id }}/comments"
+      headers:
+        kbn-xsrf: "true"
+      body:
+        type: user
+        owner: observability
+        comment: |
+          ## 🔍 AI Investigation Summary
+          [View Full Conversation]({{ context.kibanaUrl }}/app/agent_builder/conversations/{{ steps.rca_analysis.output.conversation_id }})
+
+          ### Investigation Steps
+
+          {%- assign step_number = 0 %}
+          {%- for round in steps.getConversation.output.rounds %}
+          {%- for step in round.steps %}
+          {%- if step.type == "reasoning" %}
+          {%- assign step_number = step_number | plus: 1 %}
+
+          **{{ step_number }}. Reasoning**
+          > {{ step.reasoning }}
+
+          {%- elsif step.type == "tool_call" %}
+          {%- assign query_esql = "" %}
+          {%- assign result_count = 0 %}
+          {%- assign has_error = false %}
+          {%- assign error_message = "" %}
+          {%- for result in step.results %}
+          {%- if result.type == "error" %}
+          {%- assign has_error = true %}
+          {%- assign error_message = result.data.message %}
+          {%- elsif result.type == "query" %}
+          {%- assign query_esql = result.data.esql %}
+          {%- elsif result.type == "tabular_data" %}
+          {%- assign result_count = result.data.values | size %}
+          {%- endif %}
+          {%- endfor %}
+
+          **Action:** `{{ step.tool_id }}`
+          {%- if has_error %}
+          - ❌ **Error:** {{ error_message }}
+          {%- elsif query_esql != "" %}
+          - ✅ **Found {{ result_count }} results** → [View in Discover]({{ context.kibanaUrl }}/app/discover#/?_a=(dataSource:(type:esql),query:(esql:'{{ query_esql | url_encode }}')))
+          {%- else %}
+          - ✅ **Completed**
+          {%- endif %}
+
+          {%- endif %}
+          {%- endfor %}
+          {%- endfor %}
+
+  # Phase 8: Add the full AI RCA narrative as a comment
+  - name: add_rca_as_comment
+    type: kibana.request
+    with:
+      method: "POST"
+      path: "/api/cases/{{ steps.create_case.output.id }}/comments"
+      headers:
+        kbn-xsrf: "true"
+      body:
+        type: user
+        owner: observability
+        comment: "{{ steps.rca_analysis.output.response.message }}"
