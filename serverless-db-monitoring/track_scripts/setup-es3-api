@@ -223,6 +223,17 @@ if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
   export ES_API_KEY="$WORKSHOP_ES_API_KEY"
   # Give the project 20 s to reach a fully ready state before pushing dashboards
   sleep 20
+
+  # Enable Elastic Workflows (technical preview) — required for the RCA workflow
+  echo "Enabling workflows:ui:enabled Kibana setting..."
+  _wf_http=$(curl -s -o /tmp/wf-setting.json -w "%{http_code}" \
+    -X POST "${KIBANA_URL}/api/kibana/settings" \
+    -H "Content-Type: application/json" \
+    -H "kbn-xsrf: true" \
+    -H "x-elastic-internal-origin: kibana" \
+    -H "Authorization: ApiKey ${WORKSHOP_ES_API_KEY}" \
+    -d '{"changes":{"workflows:ui:enabled":true}}')
+  echo "DEBUG: workflows setting → HTTP ${_wf_http} $(cat /tmp/wf-setting.json | head -c 120)"
   echo "Deploying dashboards..."
   deploy_out=$(KIBANA_URL="$KIBANA_URL" ES_API_KEY="$ES_API_KEY" \
     /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/scripts/import_dashboards.py" 2>&1 || true)
