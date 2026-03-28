@@ -98,10 +98,6 @@ export function Slide03Architecture() {
           </div>
         </div>
 
-        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-          className="text-center text-white/25 text-xs">
-          Python OTLP generator seeds 4 days of MySQL logs + live metrics for all 4 engines before the demo begins
-        </motion.p>
       </div>
     </SlideLayout>
   );
