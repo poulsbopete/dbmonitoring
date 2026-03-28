@@ -36,6 +36,33 @@ for i in $(seq 1 12); do
   sleep 5
 done
 
-# Deploy dashboards via Saved Objects API (works with all Kibana versions)
+# Deploy dashboards via kibana-dashboards.js (uses /api/dashboards with Elastic-Api-Version: 1)
 echo "Deploying dashboards..."
-/opt/workshop-venv/bin/python3 "$DB_REPO_DIR/tools/deploy_dashboards.py"
+export KIBANA_API_KEY="${ES_API_KEY}"
+
+_deploy() {
+  local title="$1" file="$2"
+  local result
+  result=$(KIBANA_URL="$KIBANA_URL" KIBANA_API_KEY="$KIBANA_API_KEY" \
+    node "$DB_REPO_DIR/scripts/kibana-dashboards.js" dashboard create "$file" 2>&1)
+  if echo "$result" | grep -q "created successfully"; then
+    local id
+    id=$(echo "$result" | grep "ID:" | awk '{print $2}')
+    echo "  ✓ ${title} (id=${id})"
+    echo "$id" >> /root/workshop/build/db-monitoring/dashboard-ids.txt
+  else
+    echo "  ✗ ${title}"
+    echo "$result" | head -5
+  fi
+}
+
+mkdir -p /root/workshop/build/db-monitoring
+> /root/workshop/build/db-monitoring/dashboard-ids.txt
+
+_deploy "MySQL — Slow Query & Error Monitoring"   "$DB_REPO_DIR/dashboards/mysql-monitoring.json"
+_deploy "PostgreSQL — Performance & Health"        "$DB_REPO_DIR/dashboards/postgres-monitoring.json"
+_deploy "SQL Server — Performance & Health"        "$DB_REPO_DIR/dashboards/mssql-monitoring.json"
+_deploy "MongoDB — Operations & Health"            "$DB_REPO_DIR/dashboards/mongodb-monitoring.json"
+
+echo ""
+echo "Done. Open Kibana → Dashboards to explore."

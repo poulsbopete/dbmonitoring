@@ -173,10 +173,25 @@ def table_panel(uid, x, y, w, h, title, esql, all_cols):
     }
 
 
-# ── saved-object deploy ───────────────────────────────────────────────────────
+# ── saved-object deploy via _import (works on all Kibana Serverless versions) ─
+
+_import_headers = {
+    "kbn-xsrf": "true",
+    "Authorization": f"ApiKey {ES_API_KEY}",
+}
+
+def _slug(title):
+    """Generate a stable ID from a title."""
+    return title.lower().replace(" ", "-").replace("—", "").replace("&", "").replace("/", "").replace(".", "").replace("  ", "-")[:60].strip("-")
+
 
 def deploy_dashboard(title, description, panels, time_from="now-7d"):
-    body = {
+    dash_id = _slug(title)
+    obj = {
+        "type": "dashboard",
+        "id": dash_id,
+        "managed": False,
+        "references": [],
         "attributes": {
             "title": title,
             "description": description,
@@ -195,16 +210,17 @@ def deploy_dashboard(title, description, panels, time_from="now-7d"):
                     "filter": [],
                 })
             },
-        }
+        },
     }
+    ndjson_bytes = (json.dumps(obj) + "\n").encode("utf-8")
     r = requests.post(
-        f"{KIBANA_URL}/api/saved_objects/dashboard",
-        headers=HEADERS,
-        json=body,
+        f"{KIBANA_URL}/api/saved_objects/_import?overwrite=true",
+        headers=_import_headers,
+        files={"file": ("export.ndjson", ndjson_bytes, "application/ndjson")},
         timeout=30,
     )
-    if r.status_code in (200, 201):
-        dash_id = r.json().get("id", "?")
+    data = r.json()
+    if r.status_code == 200 and data.get("success"):
         print(f"  ✓  {title} (id={dash_id})")
         return dash_id
     else:
