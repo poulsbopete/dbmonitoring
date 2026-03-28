@@ -217,31 +217,21 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Deploy Kibana dashboards via kibana-dashboards.js (/api/dashboards)
+# 7. Deploy Kibana dashboards via import_dashboards.py (Saved Objects API)
 # ---------------------------------------------------------------------------
 if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
   export ES_API_KEY="$WORKSHOP_ES_API_KEY"
-  export KIBANA_API_KEY="$WORKSHOP_ES_API_KEY"
   # Give the project 20 s to reach a fully ready state before pushing dashboards
   sleep 20
   echo "Deploying dashboards..."
-  for dash_file in \
-    "$DB_REPO_DIR/dashboards/mysql-monitoring.json" \
-    "$DB_REPO_DIR/dashboards/postgres-monitoring.json" \
-    "$DB_REPO_DIR/dashboards/mssql-monitoring.json" \
-    "$DB_REPO_DIR/dashboards/mongodb-monitoring.json"; do
-    title="$(jq -r '.title' "$dash_file")"
-    result=$(KIBANA_URL="$KIBANA_URL" KIBANA_API_KEY="$KIBANA_API_KEY" \
-      node "$DB_REPO_DIR/scripts/kibana-dashboards.js" dashboard create "$dash_file" 2>&1 || true)
-    if echo "$result" | grep -q "created successfully"; then
-      dash_id=$(echo "$result" | grep "ID:" | awk '{print $2}')
-      echo "  ✓ ${title} (id=${dash_id})"
-      echo "$dash_id" >> /root/workshop/build/db-monitoring/dashboard-ids.txt
-    else
-      echo "  WARN: ${title}" >&2
-      echo "$result" | head -3 >&2
-    fi
-  done 2>&1 | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log
+  deploy_out=$(KIBANA_URL="$KIBANA_URL" ES_API_KEY="$ES_API_KEY" \
+    /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/scripts/import_dashboards.py" 2>&1 || true)
+  echo "$deploy_out" | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log
+  if echo "$deploy_out" | grep -q "All dashboards created successfully"; then
+    echo "✓ All dashboards deployed"
+  else
+    echo "WARN: Dashboard deployment may have failed — check /tmp/db-monitoring-logs/dashboard-deploy.log" >&2
+  fi
 else
   echo "WARN: ES_API_KEY not set — skipping dashboard deployment." >&2
 fi
