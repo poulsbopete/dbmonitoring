@@ -92,7 +92,7 @@ def esql_state_xy(esql_query, series_type, x_col, y_cols, breakdown_col=None, x_
     }
 
 
-def create_dashboard(title, description, panels_grids):
+def create_dashboard(title, description, panels_grids, time_from="now-2h"):
     """panels_grids: list of (lens_id, (x,y,w,h), panel_title)"""
     panels_json = []
     references  = []
@@ -114,7 +114,7 @@ def create_dashboard(title, description, panels_grids):
             "optionsJSON": json.dumps({"useMargins": True, "syncColors": False,
                                        "syncCursor": True, "syncTooltips": False,
                                        "hidePanelTitles": False}),
-            "version": 1, "timeRestore": True, "timeFrom": "now-7d", "timeTo": "now",
+            "version": 1, "timeRestore": True, "timeFrom": time_from, "timeTo": "now",
             "kibanaSavedObjectMeta": {"searchSourceJSON": json.dumps(
                 {"query": {"language": "kuery", "query": ""}, "filter": []})},
         },
@@ -166,7 +166,8 @@ def build_mysql():
             (top_tables, (0,  16, 24, 11), "Top Tables by Slow Query Count"),
             (lock_vs_q,  (24, 16, 24, 11), "Avg Query vs Lock Time by Database"),
             (err_trend,  (0,  27, 48, 11), "Error Log Trend"),
-        ])
+        ],
+        time_from="now-4d")
 
 
 def build_postgres():
