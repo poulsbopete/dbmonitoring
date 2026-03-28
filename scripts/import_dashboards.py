@@ -249,8 +249,8 @@ def build_mongodb():
     print("  Creating MongoDB Lens panels...")
     kpi_conn = create_lens("Active Connections", "lnsMetric", esql_state_metric(
         "FROM metrics-mongodbatlas.otel.otel-default | STATS `Active Connections` = MAX(`mongodb.connection.count`)", "Active Connections"))
-    kpi_mem  = create_lens("Memory Usage (bytes)", "lnsMetric", esql_state_metric(
-        "FROM metrics-mongodbatlas.otel.otel-default | STATS `Memory Usage` = MAX(`mongodb.memory.usage`)", "Memory Usage"))
+    kpi_mem  = create_lens("Memory Usage (GB)", "lnsMetric", esql_state_metric(
+        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _mem_gb = `mongodb.memory.usage` / 1073741824.0 | STATS `Memory Usage (GB)` = ROUND(MAX(_mem_gb), 2)", "Memory Usage (GB)"))
     kpi_ops  = create_lens("Total Operations", "lnsMetric", esql_state_metric(
         "FROM metrics-mongodbatlas.otel.otel-default | EVAL _ops = TO_DOUBLE(`mongodb.operation.count`) | STATS `Total Operations` = MAX(_ops)", "Total Operations"))
     kpi_repl = create_lens("Replication Lag (s)", "lnsMetric", esql_state_metric(
@@ -261,8 +261,8 @@ def build_mongodb():
     conn_t   = create_lens("Connections by Instance", "lnsXY", esql_state_xy(
         "FROM metrics-mongodbatlas.otel.otel-default | STATS conns = AVG(`mongodb.connection.count`) BY bucket = BUCKET(@timestamp, 1 hour), `service.name`",
         "line", "bucket", ["conns"], "service.name"))
-    mem_t    = create_lens("Memory: Resident vs Virtual (bytes)", "lnsXY", esql_state_xy(
-        "FROM metrics-mongodbatlas.otel.otel-default | STATS resident = AVG(`mongodb.memory.usage`), virtual = AVG(`mongodb.memory.virtual`) BY bucket = BUCKET(@timestamp, 1 hour)",
+    mem_t    = create_lens("Memory: Resident vs Virtual (GB)", "lnsXY", esql_state_xy(
+        "FROM metrics-mongodbatlas.otel.otel-default | EVAL _res = `mongodb.memory.usage` / 1073741824.0, _virt = `mongodb.memory.virtual` / 1073741824.0 | STATS resident = ROUND(AVG(_res), 2), virtual = ROUND(AVG(_virt), 2) BY bucket = BUCKET(@timestamp, 1 hour)",
         "area", "bucket", ["resident", "virtual"]))
     docs     = create_lens("Document Operations Over Time", "lnsXY", esql_state_xy(
         "FROM metrics-mongodbatlas.otel.otel-default | EVAL _docs = TO_DOUBLE(`mongodb.document.operation.count`) | STATS docs = MAX(_docs) BY bucket = BUCKET(@timestamp, 1 hour), `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL",
