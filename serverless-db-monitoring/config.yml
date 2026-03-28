@@ -6,7 +6,6 @@ virtualmachines:
   environment:
     ESS_CLOUD_API_KEY: $ESS_CLOUD_API_KEY
     LLM_PROXY_PROD: $LLM_PROXY_PROD
-    PME_CLOUD_INSTRUQT_API_KEY: $ESS_CLOUD_API_KEY
     PRODUCT_TIER: complete
     PROJECT_TYPE: observability
     REGIONS: aws-us-east-1

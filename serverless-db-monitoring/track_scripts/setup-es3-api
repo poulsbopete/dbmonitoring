@@ -4,16 +4,15 @@
 
 # ---------------------------------------------------------------------------
 # Resolve Cloud API key
+# ESS_CLOUD_API_KEY is injected directly by Instruqt (name matches secret name).
+# PME_CLOUD_INSTRUQT_API_KEY is the legacy name es3-api.py may also accept.
 # ---------------------------------------------------------------------------
+PME_CLOUD_INSTRUQT_API_KEY="${ESS_CLOUD_API_KEY:-}"
 if [ -z "${PME_CLOUD_INSTRUQT_API_KEY:-}" ]; then
-  PME_CLOUD_INSTRUQT_API_KEY="${ESS_CLOUD_API_KEY:-}"
+  PME_CLOUD_INSTRUQT_API_KEY="$(agent variable get ESS_CLOUD_API_KEY 2>/dev/null || echo "")"
 fi
 if [ -z "${PME_CLOUD_INSTRUQT_API_KEY:-}" ]; then
   PME_CLOUD_INSTRUQT_API_KEY="$(agent variable get PME_CLOUD_INSTRUQT_API_KEY 2>/dev/null || echo "")"
-fi
-if [ -z "${PME_CLOUD_INSTRUQT_API_KEY:-}" ]; then
-  ESS_KEY="$(agent variable get ESS_CLOUD_API_KEY 2>/dev/null || echo "")"
-  [ -n "$ESS_KEY" ] && PME_CLOUD_INSTRUQT_API_KEY="$ESS_KEY"
 fi
 if [ -z "${PME_CLOUD_INSTRUQT_API_KEY:-}" ]; then
   echo "ERROR: Cloud API key not set. Configure Instruqt secret ESS_CLOUD_API_KEY for this track." >&2
@@ -25,10 +24,15 @@ set -euxo pipefail
 
 echo "=== DB Monitoring Track — bootstrap (es3-api) ==="
 
-# Debug: confirm the key is present and show first/last 4 chars
-_key_len="${#PME_CLOUD_INSTRUQT_API_KEY}"
-_key_preview="${PME_CLOUD_INSTRUQT_API_KEY:0:4}...${PME_CLOUD_INSTRUQT_API_KEY: -4}"
-echo "DEBUG: API key length=${_key_len} preview=${_key_preview}"
+# Debug: show both variable lengths to detect Instruqt literal-string injection bug
+echo "DEBUG: PME_CLOUD_INSTRUQT_API_KEY length=${#PME_CLOUD_INSTRUQT_API_KEY} first4=${PME_CLOUD_INSTRUQT_API_KEY:0:4}"
+echo "DEBUG: ESS_CLOUD_API_KEY          length=${#ESS_CLOUD_API_KEY} first4=${ESS_CLOUD_API_KEY:0:4}"
+
+# If PME_CLOUD_INSTRUQT_API_KEY looks like a literal unexpanded variable, use ESS_CLOUD_API_KEY directly
+if [[ "${PME_CLOUD_INSTRUQT_API_KEY}" == '$'* ]] || [[ "${#PME_CLOUD_INSTRUQT_API_KEY}" -lt 20 ]]; then
+  echo "DEBUG: PME_CLOUD_INSTRUQT_API_KEY appears unexpanded, switching to ESS_CLOUD_API_KEY"
+  PME_CLOUD_INSTRUQT_API_KEY="${ESS_CLOUD_API_KEY}"
+fi
 
 # Quick sanity-check against the Elastic Cloud API before attempting project creation
 _auth_check=$(curl -s -o /dev/null -w "%{http_code}" \
@@ -37,7 +41,6 @@ _auth_check=$(curl -s -o /dev/null -w "%{http_code}" \
 echo "DEBUG: Elastic Cloud auth check → HTTP ${_auth_check}"
 if [ "$_auth_check" = "401" ] || [ "$_auth_check" = "403" ]; then
   echo "ERROR: ESS_CLOUD_API_KEY is invalid or lacks permissions (HTTP ${_auth_check})." >&2
-  echo "       Please update the ESS_CLOUD_API_KEY org secret in the Instruqt dashboard." >&2
   exit 1
 fi
 
