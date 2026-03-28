@@ -500,8 +500,8 @@ def send_mongodb(endpoint: str, auth: str, dt: datetime, load: float, _state: di
                      [attr("mongodb.operation.type", "update")]),
             _mdb_sum("mongodb.document.operation.count", s["docs_deleted"],
                      [attr("mongodb.operation.type", "delete")]),
-            _mdb_sum("mongodb.network.io.receive", network_in, no_attr, "By"),
-            _mdb_sum("mongodb.network.io.transmit", network_out, no_attr, "By"),
+            _mdb_sum("mongodb.network.io.receive", network_in, no_attr),
+            _mdb_sum("mongodb.network.io.transmit", network_out, no_attr),
         ]
         if not is_primary:
             metrics.append(_mdb_gauge("mongodb.replication.lag", s["replication_lag"],
