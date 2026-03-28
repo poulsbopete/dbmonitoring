@@ -220,28 +220,26 @@ if __name__ == "__main__":
     print("\nDeploying RCA Workflow...")
     wf_id = deploy_workflow()
     if wf_id:
-        global WORKFLOW_ID
         WORKFLOW_ID = wf_id
 
     print("\nDeploying Alert Rules...")
     for rule_id, body in RULES:
-        # Refresh workflow_action with deployed ID
-        if wf_id:
-            group = "query matched" if body["rule_type_id"] == ".es-query" else "custom_threshold.fired"
-            body["actions"] = [{
-                "id": wf_id, "group": group, "params": {},
-                "frequency": {"summary": False, "notify_when": "onActionGroupChange"}
-            }]
+        # The Workflows preview feature is not exposed as a connector type in the
+        # REST API, so rules are created without workflow actions. Wiring is done
+        # via the Kibana UI after deployment.
+        body["actions"] = []
         result = upsert_rule(rule_id, body)
         if "error" in result:
             print(f"  ✗ {body['name']}: {result.get('msg','')[:100]}")
         else:
             print(f"  ✓ {result['name']} [{result.get('enabled') and 'enabled' or 'disabled'}]")
 
-    print(f"\n✓ Done. View rules at: {KIBANA_URL}/app/observability/alerts/rules")
+    print(f"\n✓ Alert rules: {KIBANA_URL}/app/observability/alerts/rules")
     if wf_id:
-        print(f"✓ Workflow at:         {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{wf_id}")
-    print("""
-NOTE: To wire the workflow to each rule:
-  Stack Management → Rules → select a rule → Edit → Actions → Workflows → select the RCA workflow
-""")
+        print(f"✓ RCA Workflow: {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{wf_id}")
+        print("""
+┌─ Wire workflow to each rule in the UI ──────────────────────────────────┐
+│  Alerts → Rules → select a rule → Edit → Actions tab                   │
+│  → Add action → Workflows → select "Database Monitoring — RCA"          │
+│  Repeat for all 5 rules.                                                │
+└─────────────────────────────────────────────────────────────────────────┘""")
