@@ -198,11 +198,11 @@ RULES = [
 ]
 
 
-def deploy_workflow():
-    """Deploy the RCA workflow YAML to Kibana."""
-    yaml_path = os.path.join(os.path.dirname(__file__), "../workflows/rca-workflow.yaml")
+def deploy_workflow(filename, label):
+    """Deploy a workflow YAML file to Kibana. Returns the workflow id or None."""
+    yaml_path = os.path.join(os.path.dirname(__file__), f"../workflows/{filename}")
     if not os.path.exists(yaml_path):
-        print("WARN: rca-workflow.yaml not found, skipping workflow deploy")
+        print(f"  WARN: {filename} not found, skipping")
         return None
     yaml_content = open(yaml_path).read()
     req = urllib.request.Request(
@@ -212,18 +212,20 @@ def deploy_workflow():
     try:
         with urllib.request.urlopen(req) as r:
             result = json.loads(r.read())
-            print(f"  ✓ Workflow deployed: {result['name']} (id={result['id']})")
+            print(f"  ✓ {label}: {result['name']} (id={result['id']})")
             return result["id"]
     except urllib.error.HTTPError as e:
-        print(f"  WARN: Workflow deploy failed HTTP {e.code}: {e.read().decode()[:200]}")
+        print(f"  WARN: {label} deploy failed HTTP {e.code}: {e.read().decode()[:200]}")
         return None
 
 
 if __name__ == "__main__":
-    print("\nDeploying RCA Workflow...")
-    wf_id = deploy_workflow()
+    print("\nDeploying Workflows...")
+    wf_id = deploy_workflow("rca-workflow.yaml", "RCA Workflow")
     if wf_id:
         WORKFLOW_ID = wf_id
+
+    slo_wf_id = deploy_workflow("db-slo-workflow.yaml", "SLO Workflow")
 
     print("\nDeploying Alert Rules...")
     for rule_id, body in RULES:
@@ -237,11 +239,15 @@ if __name__ == "__main__":
         else:
             print(f"  ✓ {result['name']} [{result.get('enabled') and 'enabled' or 'disabled'}]")
 
-    print(f"\n✓ Alert rules: {KIBANA_URL}/app/observability/alerts/rules")
+    print(f"\n✓ Alert rules:   {KIBANA_URL}/app/observability/alerts/rules")
     if wf_id:
-        print(f"✓ RCA Workflow: {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{wf_id}")
+        print(f"✓ RCA Workflow:  {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{wf_id}")
+    if slo_wf_id:
+        print(f"✓ SLO Workflow:  {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{slo_wf_id}")
+        print(f"  → Trigger once to seed the 5 DB SLOs, then runs every 24 h automatically.")
+    if wf_id:
         print("""
-┌─ Wire workflow to each rule in the UI ──────────────────────────────────┐
+┌─ Wire RCA workflow to each rule in the UI ──────────────────────────────┐
 │  Alerts → Rules → select a rule → Edit → Actions tab                   │
 │  → Add action → Workflows → select "Database Monitoring — RCA"          │
 │  Repeat for all 5 rules.                                                │

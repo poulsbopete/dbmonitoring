@@ -1,0 +1,313 @@
+version: "1"
+name: Database Monitoring — SLO Management 📊
+enabled: true
+description: |
+  Automatically creates and maintains 5 Database SLOs covering MySQL, PostgreSQL,
+  SQL Server, and MongoDB. Runs every 24 hours.
+  IDEMPOTENT: Deletes any existing DB Monitoring SLOs with matching names, then
+  recreates all 5. Each run leaves exactly 5 SLOs — no duplicates.
+
+  SLO Targets:
+    MySQL Error-Free Log Rate    — 99% (error log events must not be level=Error)
+    MySQL Slow Query Compliance  — 85% of slow queries under 10 s
+    PostgreSQL Connection Health — 95% of time with < 160 active connections
+    SQL Server Lock Wait Health  — 95% of time with avg lock wait ≤ 100 ms
+    MongoDB Memory Health        — 95% of time with resident memory ≤ 2 GB
+
+triggers:
+  - type: scheduled
+    with:
+      every: "24h"
+  - type: manual
+
+steps:
+  - name: workflow-start
+    type: console
+    with:
+      message: |
+        ================================================
+        DB Monitoring SLO Workflow - Starting
+        ================================================
+
+        Execution ID: {{ execution.id }}
+        Timestamp: {{ now | date: '%Y-%m-%d %H:%M:%S UTC' }}
+
+        IDEMPOTENT: Existing DB Monitoring SLOs will be deleted and recreated.
+
+        ================================================
+
+  # ──────────────────────────────────────────────
+  # Phase 1: Fetch and delete any existing DB SLOs
+  # ──────────────────────────────────────────────
+  - name: get-all-existing-slos
+    type: kibana.request
+    on-failure:
+      continue: true
+    with:
+      method: "GET"
+      path: "/api/observability/slos?perPage=500"
+      timeout: '60'
+      headers:
+        Content-Type: 'application/json'
+        Accept: 'application/json'
+        kbn-xsrf: 'true'
+
+  - name: loop_over_results
+    type: foreach
+    foreach: "{{steps.get-all-existing-slos.output.results}}"
+    on-failure:
+      continue: true
+    steps:
+      - name: check_db_slos
+        type: if
+        condition: >
+          foreach.item.name : *MySQL Error-Free Log Rate* OR
+          foreach.item.name : *MySQL Slow Query Compliance* OR
+          foreach.item.name : *PostgreSQL Connection Health* OR
+          foreach.item.name : *SQL Server Lock Wait Health* OR
+          foreach.item.name : *MongoDB Memory Health*
+        steps:
+          - name: print-slo-to-delete
+            type: console
+            with:
+              message: "Deleting: {{foreach.item.name | uniq}} ({{foreach.item.id | uniq}})"
+          - name: delete-db-slo
+            type: kibana.request
+            on-failure:
+              continue: true
+            with:
+              method: DELETE
+              path: /api/observability/slos/{{ foreach.item.id | uniq}}
+              headers:
+                kbn-xsrf: "true"
+        else:
+          - name: print-skipped-slo
+            type: console
+            with:
+              message: "Skipping (not a DB SLO): {{foreach.item.name | uniq}}"
+
+  # ──────────────────────────────────────────────
+  # Phase 2: Create the 5 DB SLOs
+  # ──────────────────────────────────────────────
+
+  # SLO 1 — MySQL Error-Free Log Rate
+  - name: create-slo-mysql-error-rate
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/observability/slos
+      body:
+        name: MySQL Error-Free Log Rate
+        description: >
+          99% of MySQL error log events must NOT be level=Error.
+          Covers all four simulated MySQL instances.
+        indicator:
+          type: sli.kql.custom
+          params:
+            index: logs-mysql.error.otel.otel-default
+            filter: "*"
+            good: "NOT log.level: Error"
+            total: "*"
+            timestampField: "@timestamp"
+        budgetingMethod: occurrences
+        timeWindow:
+          duration: 7d
+          type: rolling
+        objective:
+          target: 0.99
+        tags:
+          - database-monitoring
+          - mysql
+          - demo
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        kbn-xsrf: "true"
+
+  - name: console-slo1
+    type: console
+    with:
+      message: "✓ Created: MySQL Error-Free Log Rate → id={{ steps.create-slo-mysql-error-rate.output.id }}"
+
+  # SLO 2 — MySQL Slow Query Compliance
+  - name: create-slo-mysql-slow-query
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/observability/slos
+      body:
+        name: MySQL Slow Query Compliance
+        description: >
+          85% of logged slow queries must complete in under 10 seconds.
+          Based on mysql.slowlog.query_time field in the slow query log stream.
+        indicator:
+          type: sli.kql.custom
+          params:
+            index: logs-mysql.slowlog.otel.otel-default
+            filter: "*"
+            good: "mysql.slowlog.query_time <= 10"
+            total: "*"
+            timestampField: "@timestamp"
+        budgetingMethod: occurrences
+        timeWindow:
+          duration: 7d
+          type: rolling
+        objective:
+          target: 0.85
+        tags:
+          - database-monitoring
+          - mysql
+          - demo
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        kbn-xsrf: "true"
+
+  - name: console-slo2
+    type: console
+    with:
+      message: "✓ Created: MySQL Slow Query Compliance → id={{ steps.create-slo-mysql-slow-query.output.id }}"
+
+  # SLO 3 — PostgreSQL Connection Health
+  - name: create-slo-postgres-connections
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/observability/slos
+      body:
+        name: PostgreSQL Connection Health
+        description: >
+          95% of metric samples must show < 160 active backend connections
+          (80% of the 200 max_connections configured in the lab).
+          Grouped by database name.
+        indicator:
+          type: sli.kql.custom
+          params:
+            index: metrics-postgresqlreceiver.otel.otel-default
+            filter: "postgresql.backends: *"
+            good: "postgresql.backends <= 160"
+            total: "postgresql.backends: *"
+            timestampField: "@timestamp"
+        groupBy:
+          - postgresql.database.name
+        budgetingMethod: occurrences
+        timeWindow:
+          duration: 7d
+          type: rolling
+        objective:
+          target: 0.95
+        tags:
+          - database-monitoring
+          - postgresql
+          - demo
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        kbn-xsrf: "true"
+
+  - name: console-slo3
+    type: console
+    with:
+      message: "✓ Created: PostgreSQL Connection Health → id={{ steps.create-slo-postgres-connections.output.id }}"
+
+  # SLO 4 — SQL Server Lock Wait Health
+  - name: create-slo-sqlserver-lock-wait
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/observability/slos
+      body:
+        name: SQL Server Lock Wait Health
+        description: >
+          95% of metric samples must show an average lock wait time ≤ 100 ms.
+          Uses sqlserver.lock.wait_time.avg from the SQL Server metrics stream.
+        indicator:
+          type: sli.kql.custom
+          params:
+            index: metrics-sqlserverreceiver.otel.otel-default
+            filter: "sqlserver.lock.wait_time.avg: *"
+            good: "sqlserver.lock.wait_time.avg <= 100"
+            total: "sqlserver.lock.wait_time.avg: *"
+            timestampField: "@timestamp"
+        budgetingMethod: occurrences
+        timeWindow:
+          duration: 7d
+          type: rolling
+        objective:
+          target: 0.95
+        tags:
+          - database-monitoring
+          - sqlserver
+          - demo
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        kbn-xsrf: "true"
+
+  - name: console-slo4
+    type: console
+    with:
+      message: "✓ Created: SQL Server Lock Wait Health → id={{ steps.create-slo-sqlserver-lock-wait.output.id }}"
+
+  # SLO 5 — MongoDB Memory Health
+  - name: create-slo-mongodb-memory
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/observability/slos
+      body:
+        name: MongoDB Memory Health
+        description: >
+          95% of metric samples must show resident memory ≤ 2 GB (2,147,483,648 bytes).
+          Uses mongodb.memory.usage from the MongoDB metrics stream.
+          Grouped by MongoDB database name.
+        indicator:
+          type: sli.kql.custom
+          params:
+            index: metrics-mongodbatlas.otel.otel-default
+            filter: "mongodb.memory.usage: *"
+            good: "mongodb.memory.usage <= 2147483648"
+            total: "mongodb.memory.usage: *"
+            timestampField: "@timestamp"
+        groupBy:
+          - mongodb.database.name
+        budgetingMethod: occurrences
+        timeWindow:
+          duration: 7d
+          type: rolling
+        objective:
+          target: 0.95
+        tags:
+          - database-monitoring
+          - mongodb
+          - demo
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        kbn-xsrf: "true"
+
+  - name: console-slo5
+    type: console
+    with:
+      message: "✓ Created: MongoDB Memory Health → id={{ steps.create-slo-mongodb-memory.output.id }}"
+
+  # ──────────────────────────────────────────────
+  # Phase 3: Summary
+  # ──────────────────────────────────────────────
+  - name: workflow-done
+    type: console
+    with:
+      message: |
+        ================================================
+        DB Monitoring SLO Workflow - Complete ✓
+        ================================================
+
+        Created SLOs:
+          1. MySQL Error-Free Log Rate         (99% / 7d rolling)
+          2. MySQL Slow Query Compliance       (85% / 7d rolling)
+          3. PostgreSQL Connection Health      (95% / 7d rolling)
+          4. SQL Server Lock Wait Health       (95% / 7d rolling)
+          5. MongoDB Memory Health             (95% / 7d rolling)
+
+        Next run: in 24 hours (or trigger manually)
+        ================================================
