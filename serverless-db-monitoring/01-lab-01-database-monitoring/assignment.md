@@ -2,10 +2,10 @@
 slug: lab-01-database-monitoring
 id: a8za8uie5rvp
 type: challenge
-title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB
-teaser: Explore live database performance data across all four of your database platforms
-  in Elastic Observability Serverless—slow queries, connections, lock waits, replication
-  lag, and more. No proprietary agents. OpenTelemetry end to end.
+title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
+teaser: Explore live database performance data across all five of your database platforms
+  in Elastic Observability Serverless—slow queries, connections, lock waits, tablespace
+  utilisation, replication lag, and more. No proprietary agents. OpenTelemetry end to end.
 notes:
 - type: text
   contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n
@@ -15,11 +15,11 @@ notes:
   contents: |
     ## Data is loading…
 
-    The track bootstrap is generating telemetry for all four database
+    The track bootstrap is generating telemetry for all five database
     platforms via OpenTelemetry → Elastic managed OTLP:
 
     ```
-    MySQL · PostgreSQL · SQL Server · MongoDB
+    MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
                 │
                 │  Python OTLP HTTP  (db_otel_generator.py)
                 ▼
@@ -31,9 +31,10 @@ notes:
       metrics-postgresql.*  ← connections, commits, deadlocks, size
       metrics-sqlserver.*   ← connections, lock waits, cache hit, I/O latency
       metrics-mongodb.*     ← operations, memory, replication lag
+      metrics-oracledb.*    ← sessions, tablespaces, parses, PGA memory
                 │
                 ▼
-         Kibana Dashboards  (4 deployed automatically)
+         Kibana Dashboards  (5 deployed automatically)
     ```
 
     No proprietary agents. Pure OpenTelemetry.
@@ -49,6 +50,7 @@ notes:
     | PostgreSQL | ✓ | ✓ | ✓ |
     | **SQL Server** | ✓ extra cost | ✓ | ✓ **same price** |
     | **MongoDB** | ✓ extra cost | Limited | ✓ |
+    | **Oracle** | ✓ extra cost | ✓ extra cost | ✓ **same price** |
     | Custom dashboards | Template-only | Template-only | **Unlimited — Lens + ES\|QL** |
     | AI-assisted dashboard building | ✗ | ✗ | **✓ Cursor + Agent Skills** |
     | Bring your own telemetry (OTel) | Limited | Limited | **Native** |
@@ -80,12 +82,12 @@ timelimit: 0
 enhanced_loading: null
 ---
 
-# Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB
+# Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
 
 ## Part 1 — Explore the pre-built dashboards
 
-Four dashboards were deployed automatically when this track started.
-Open **Elastic Serverless → Dashboards** and set the time picker to **Last 7 days**.
+Five dashboards were deployed automatically when this track started.
+Open **Elastic Serverless → Dashboards** and set the time picker to **Last 2 hours**.
 
 ---
 
@@ -144,7 +146,7 @@ Walk through each panel:
 
 1. **Active Connections** — primary vs replica, peaks during business hours.
 2. **Database Size** — `warehouse` is substantially larger than `catalog` and `auth`.
-3. **Rows Inserted / Updated / Deleted** — write volume trends over 7 days.
+3. **Rows Inserted / Updated / Deleted** — write volume trends over time.
 4. **Deadlocks** — rare but visible spikes under heavy load, broken out by database.
 5. **Database Summary table** — max connections, size, deadlocks, commits, rollbacks
    across all three databases at a glance.
@@ -166,6 +168,31 @@ Walk through each panel:
 > **Talking point vs Dynatrace:**
 > MongoDB monitoring is limited in Dynatrace and a **paid add-on** in Datadog.
 > Elastic supports it natively — same OTLP pipeline, same Kibana dashboards API.
+
+---
+
+### Oracle — Performance & Health
+
+**Dashboard:** `Oracle — Performance & Health`
+
+1. **Active Sessions** — active vs inactive sessions over time. Alert fires at 250 active sessions.
+2. **Processes** — total Oracle processes across both instances.
+3. **Physical Reads** — cumulative physical I/O reads; spikes indicate storage pressure.
+4. **User Commits** — transaction commit rate baseline.
+5. **Sessions Over Time** — stacked area of active vs inactive sessions by instance.
+6. **Tablespace Utilisation** — used vs total GB for all tablespaces (ANALYTICS, FINANCE,
+   USERS, HR, SYSTEM, TEMP, UNDO). Useful for capacity planning conversations.
+7. **Physical vs Logical Reads** — ratio indicates buffer cache efficiency. High physical
+   reads relative to logical reads = undersized SGA.
+8. **Parse Rate** — hard parses vs total parse calls. A high hard-parse ratio signals poor
+   SQL plan cache reuse — an immediate tuning recommendation.
+9. **Active Transactions** — in-flight transaction count per instance.
+10. **PGA Memory** — Program Global Area memory consumption per instance.
+
+> **Talking point vs Datadog / Dynatrace:**
+> Oracle monitoring is a **paid add-on** in both Datadog and Dynatrace. In Elastic, the
+> `oracledbreceiver` ships via the same standard OTLP pipeline at no extra cost.
+> See: [elastic.co/docs/reference/integrations/oracle](https://www.elastic.co/docs/reference/integrations/oracle)
 
 ---
 
@@ -243,7 +270,7 @@ I've attached a screenshot of our current SQL Server monitoring dashboard in Dat
 Please rebuild it in Elastic Observability Serverless using the kibana-dashboards agent skill.
 
 Use these data sources:
-- Index: metrics-sqlserverreceiver.otel-default
+- Index: metrics-sqlserverreceiver.otel.otel-default
 - Key fields: sqlserver.user.connection.count, sqlserver.page.buffer_cache.hit_ratio,
   sqlserver.lock.wait_time.avg, sqlserver.deadlock.count, sqlserver.batch_sql_request.count,
   sqlserver.database.io.read_latency, sqlserver.database.io.write_latency,
@@ -266,7 +293,7 @@ of the current layout:
 Please use the kibana-dashboards agent skill to recreate this dashboard.
 
 Use these data sources:
-- Index: metrics-sqlserverreceiver.otel-default
+- Index: metrics-sqlserverreceiver.otel.otel-default
 - Key fields: sqlserver.user.connection.count, sqlserver.page.buffer_cache.hit_ratio,
   sqlserver.lock.wait_time.avg, sqlserver.deadlock.count, sqlserver.batch_sql_request.count,
   sqlserver.database.io.read_latency, sqlserver.database.io.write_latency,
@@ -287,7 +314,7 @@ I want to rebuild our Dynatrace PostgreSQL dashboard in Elastic. Here is the lay
 Please use the kibana-dashboards agent skill to recreate this dashboard.
 
 Use these data sources:
-- Index: metrics-postgresqlreceiver.otel-default
+- Index: metrics-postgresqlreceiver.otel.otel-default
 - Key fields: postgresql.backends, postgresql.commits, postgresql.rollbacks,
   postgresql.deadlocks, postgresql.blks_hit, postgresql.blks_read,
   postgresql.db_size, postgresql.tup_inserted, postgresql.tup_updated,
@@ -308,7 +335,7 @@ I want to rebuild our Datadog MongoDB dashboard in Elastic. Here is the layout:
 Please use the kibana-dashboards agent skill to recreate this dashboard.
 
 Use these data sources:
-- Index: metrics-mongodbatlas.otel-default
+- Index: metrics-mongodbatlas.otel.otel-default
 - Key fields: mongodb.operation.count, mongodb.operation.type,
   mongodb.connection.count, mongodb.memory.usage, mongodb.memory.virtual,
   mongodb.document.operation.count, mongodb.replication.lag,
@@ -316,6 +343,28 @@ Use these data sources:
   mongodb.network.io.receive, mongodb.network.io.transmit,
   service.name, host.name
 
+Deploy the dashboard to Kibana when done.
+```
+
+---
+
+**Prompt for Oracle:**
+
+```
+I want to build an Oracle database monitoring dashboard in Elastic.
+
+Use these data sources:
+- Index: metrics-oracledbreceiver.otel.otel-default
+- Key fields: oracledb.sessions.current (with session.type attribute: active/inactive),
+  oracledb.processes.count, oracledb.transactions, oracledb.pga_memory,
+  oracledb.logical_reads, oracledb.physical_reads,
+  oracledb.hard_parses, oracledb.parse_calls,
+  oracledb.user_commits, oracledb.user_rollbacks, oracledb.enqueue_deadlocks,
+  oracledb.tablespace.size, oracledb.tablespace.used (with tablespace_name attribute),
+  service.name, host.name
+
+Build panels for: sessions over time, tablespace utilisation (used vs total GB),
+physical vs logical reads, hard parse rate, active transactions, PGA memory trend.
 Deploy the dashboard to Kibana when done.
 ```
 
@@ -335,14 +384,14 @@ The entire process takes **60–120 seconds**.
 Switch back to the **Elastic Serverless** tab. Click **Dashboards** in the left nav.
 Your new dashboard appears at the top of the list.
 
-Set the time picker to **Last 7 days** to see the generated data populate all panels.
+Set the time picker to **Last 2 hours** to see the generated data populate all panels.
 
 If any panel is empty, click **Edit** → inspect the ES|QL query → Claude can fix it
 in a follow-up message:
 
 ```
 Panel "Buffer Cache Hit %" is empty. The query is:
-FROM metrics-sqlserverreceiver.otel-default
+FROM metrics-sqlserverreceiver.otel.otel-default
 | STATS avg_cache = AVG(sqlserver.page.buffer_cache.hit_ratio)
 
 Please fix the field name or query syntax.
@@ -374,16 +423,18 @@ source ~/.bashrc
 ps aux | grep db_otel_generator | grep -v grep
 
 # Restart if needed
-nohup python3 /root/workshop/tools/db_otel_generator.py \
+nohup python3 /opt/dbmonitoring/tools/db_otel_generator.py \
   --otlp-endpoint "${WORKSHOP_OTLP_ENDPOINT}" \
   --otlp-auth "${WORKSHOP_OTLP_AUTH_HEADER}" \
-  --historical-days 4 --live \
+  --live \
   >> /tmp/db-monitoring-logs/generator.log 2>&1 &
 
 # Watch live output
 tail -f /tmp/db-monitoring-logs/generator.log
 
-# Confirm data is reaching Elastic
+# Confirm data is reaching Elastic (spot-check each stream)
 curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
-  "${ES_URL}/metrics-sqlserverreceiver.otel-default/_count" | jq .count
+  "${ES_URL}/metrics-sqlserverreceiver.otel.otel-default/_count" | jq .count
+curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
+  "${ES_URL}/metrics-oracledbreceiver.otel.otel-default/_count" | jq .count
 ```
