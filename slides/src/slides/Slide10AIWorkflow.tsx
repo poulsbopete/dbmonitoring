@@ -48,7 +48,7 @@ function Connector({ color, delay }: { color: string; delay: number }) {
   );
 }
 
-export function Slide09AIWorkflow() {
+export function Slide10AIWorkflow() {
   return (
     <SlideLayout shadowColor="rgba(168, 85, 247, 0.5)" shadowSpeed={55} shadowScale={80}>
       <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">

@@ -7,6 +7,7 @@ const features = [
   { label: 'PostgreSQL Metrics', elastic: 'full', dd: 'full', dt: 'full' },
   { label: 'SQL Server Metrics', elastic: 'full', dd: 'addon', dt: 'full' },
   { label: 'MongoDB Metrics', elastic: 'full', dd: 'addon', dt: 'addon' },
+  { label: 'Oracle Database', elastic: 'full', dd: 'addon', dt: 'addon' },
   { label: 'OpenTelemetry Native', elastic: 'full', dd: 'partial', dt: 'none' },
   { label: 'No Proprietary Agents', elastic: 'full', dd: 'none', dt: 'none' },
   { label: 'AI Root Cause Analysis', elastic: 'full', dd: 'partial', dt: 'partial' },
@@ -31,7 +32,7 @@ const vendors = [
   { name: 'Dynatrace', score: 6, color: '#1496ff' },
 ];
 
-export function Slide08Comparison() {
+export function Slide09Comparison() {
   return (
     <SlideLayout shadowColor="rgba(27, 169, 245, 0.4)" shadowSpeed={40} shadowScale={68}>
       <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">
@@ -109,7 +110,7 @@ export function Slide08Comparison() {
 
             <div className="p-3 rounded-xl border border-[#1ba9f5]/25 bg-[#1ba9f5]/8">
               <p className="text-[#1ba9f5] text-xs font-semibold">Elastic wins on:</p>
-              <p className="text-white/65 text-[10px] leading-relaxed mt-1">OTel-native · AI RCA · serverless pricing · ES|QL flexibility</p>
+              <p className="text-white/65 text-[10px] leading-relaxed mt-1">OTel-native · Oracle included · AI RCA · serverless pricing · ES|QL flexibility</p>
             </div>
           </motion.div>
         </div>

@@ -195,6 +195,34 @@ RULES = [
         },
         "actions": workflow_action("custom_threshold.fired"),
     }),
+    # --- Oracle: High Active Sessions ---
+    ("db-alert-oracle-sessions", {
+        "name": "🔴 Oracle — High Active Sessions",
+        "rule_type_id": "observability.rules.custom_threshold",
+        "consumer": "observability",
+        "schedule": {"interval": "5m"},
+        "tags": ["database-monitoring", "oracle", "demo"],
+        "params": {
+            "criteria": [{
+                "comparator": ">",
+                "metrics": [{"name": "A", "aggType": "avg", "field": "oracledb.sessions.current"}],
+                "threshold": [250],
+                "timeSize": 5,
+                "timeUnit": "m",
+            }],
+            "alertOnNoData": False,
+            "alertOnGroupDisappear": False,
+            "searchConfiguration": {
+                "index": {
+                    "id": "metrics-oracledbreceiver.otel.otel-default",
+                    "title": "metrics-oracledbreceiver.otel.otel-default",
+                    "timeFieldName": "@timestamp",
+                },
+                "query": {"language": "kuery", "query": "session.type: active"},
+            },
+        },
+        "actions": workflow_action("custom_threshold.fired"),
+    }),
 ]
 
 

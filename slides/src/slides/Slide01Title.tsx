@@ -4,14 +4,14 @@ import { Database, Zap, Shield, TrendingUp } from 'lucide-react';
 import { CountUp } from '@/components/charts/CountUp';
 
 const stats = [
-  { value: 4, suffix: ' DBs', label: 'Monitored', color: '#1ba9f5' },
+  { value: 5, suffix: ' DBs', label: 'Monitored', color: '#1ba9f5' },
   { value: 100, suffix: '%', label: 'OpenTelemetry', color: '#a855f7' },
   { value: 0, suffix: ' agents', label: 'Proprietary', color: '#00bfa5' },
-  { value: 5, suffix: ' rules', label: 'Alert Rules + AI RCA', color: '#f59e0b' },
+  { value: 6, suffix: ' rules', label: 'Alert Rules + AI RCA', color: '#f59e0b' },
 ];
 
 const badges = [
-  { icon: Database, label: 'MySQL · PostgreSQL · SQL Server · MongoDB' },
+  { icon: Database, label: 'MySQL · PostgreSQL · SQL Server · MongoDB · Oracle' },
   { icon: Zap, label: 'OpenTelemetry OTLP — no proprietary agents' },
   { icon: Shield, label: 'Serverless · Pay only for what you use' },
   { icon: TrendingUp, label: 'AI-powered Root Cause Analysis built in' },
@@ -40,7 +40,7 @@ export function Slide01Title() {
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
             className="text-base text-white/75 max-w-lg leading-relaxed">
             One platform for <strong className="text-white">MySQL</strong>, <strong className="text-white">PostgreSQL</strong>,{' '}
-            <strong className="text-white">SQL Server</strong> and <strong className="text-white">MongoDB</strong> —
+            <strong className="text-white">SQL Server</strong>, <strong className="text-white">MongoDB</strong> and <strong className="text-white">Oracle</strong> —
             unified dashboards, AI root-cause analysis, and OpenTelemetry end to end.
           </motion.p>
 

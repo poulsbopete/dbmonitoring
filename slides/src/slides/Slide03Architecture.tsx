@@ -7,6 +7,7 @@ const sources = [
   { label: 'PostgreSQL', color: '#3b82f6', sub: 'Connections · Deadlocks', stream: 'TSDB' },
   { label: 'SQL Server', color: '#8b5cf6', sub: 'Batch requests · Locks', stream: 'TSDB' },
   { label: 'MongoDB', color: '#00bfa5', sub: 'Operations · Memory', stream: 'TSDB' },
+  { label: 'Oracle', color: '#f97316', sub: 'Sessions · Tablespaces · Parses', stream: 'TSDB' },
 ];
 
 // Animated pulsing dot moving along a path
@@ -29,7 +30,7 @@ export function Slide03Architecture() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase mb-1">How It Works</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
-            One Pipeline, <span className="text-white/55">Four Databases</span>
+            One Pipeline, <span className="text-white/55">Five Databases</span>
           </h2>
         </motion.div>
 
@@ -88,6 +89,7 @@ export function Slide03Architecture() {
                   { stream: 'metrics-postgresql.*', color: '#3b82f6', label: 'DB health metrics' },
                   { stream: 'metrics-sqlserver.*', color: '#8b5cf6', label: 'Batch & transactions' },
                   { stream: 'metrics-mongodb.*', color: '#00bfa5', label: 'Ops, memory, conns' },
+                  { stream: 'metrics-oracledb.*', color: '#f97316', label: 'Sessions, tablespaces' },
                 ].map(({ stream, color, label }) => (
                   <div key={stream} className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />

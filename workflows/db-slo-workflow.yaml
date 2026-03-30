@@ -13,6 +13,7 @@ description: |
     PostgreSQL Connection Health — 95% of time with < 160 active connections
     SQL Server Lock Wait Health  — 95% of time with avg lock wait ≤ 100 ms
     MongoDB Memory Health        — 95% of time with resident memory ≤ 2 GB
+    Oracle Session Health        — 95% of time with active sessions ≤ 250
 
 triggers:
   - type: scheduled
@@ -65,7 +66,8 @@ steps:
           foreach.item.name : *MySQL Slow Query Compliance* OR
           foreach.item.name : *PostgreSQL Connection Health* OR
           foreach.item.name : *SQL Server Lock Wait Health* OR
-          foreach.item.name : *MongoDB Memory Health*
+          foreach.item.name : *MongoDB Memory Health* OR
+          foreach.item.name : *Oracle Session Health*
         steps:
           - name: print-slo-to-delete
             type: console
@@ -291,6 +293,48 @@ steps:
     with:
       message: "✓ Created: MongoDB Memory Health → id={{ steps.create-slo-mongodb-memory.output.id }}"
 
+  # SLO 6 — Oracle Session Health
+  - name: create-slo-oracle-sessions
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/observability/slos
+      body:
+        name: Oracle Session Health
+        description: >
+          95% of metric samples must show fewer than 250 active Oracle sessions.
+          Uses oracledb.sessions.current filtered to session.type=active.
+          Grouped by service name (production vs standby).
+        indicator:
+          type: sli.kql.custom
+          params:
+            index: metrics-oracledbreceiver.otel.otel-default
+            filter: "session.type: active"
+            good: "oracledb.sessions.current <= 250"
+            total: "oracledb.sessions.current: *"
+            timestampField: "@timestamp"
+        groupBy:
+          - service.name
+        budgetingMethod: occurrences
+        timeWindow:
+          duration: 7d
+          type: rolling
+        objective:
+          target: 0.95
+        tags:
+          - database-monitoring
+          - oracle
+          - demo
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        kbn-xsrf: "true"
+
+  - name: console-slo6
+    type: console
+    with:
+      message: "✓ Created: Oracle Session Health → id={{ steps.create-slo-oracle-sessions.output.id }}"
+
   # ──────────────────────────────────────────────
   # Phase 3: Summary
   # ──────────────────────────────────────────────
@@ -308,6 +352,7 @@ steps:
           3. PostgreSQL Connection Health      (95% / 7d rolling)
           4. SQL Server Lock Wait Health       (95% / 7d rolling)
           5. MongoDB Memory Health             (95% / 7d rolling)
+          6. Oracle Session Health             (95% / 7d rolling)
 
         Next run: in 24 hours (or trigger manually)
         ================================================

@@ -1,23 +1,23 @@
 slug: serverless-db-monitoring
 id: kz0navpyrwlk
-title: Elastic Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB
+title: Elastic Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
 teaser: See Elastic's database monitoring capabilities for MySQL, PostgreSQL, SQL
-  Server, and MongoDB side-by-side vs Datadog DBM and Dynatrace. OpenTelemetry end
-  to end, no proprietary agents.
+  Server, MongoDB and Oracle side-by-side vs Datadog DBM and Dynatrace. OpenTelemetry
+  end to end, no proprietary agents.
 description: |
   **Goal:** Demonstrate Elastic Observability Serverless as a superior alternative to
   **Datadog Database Monitoring (DBM)** and **Dynatrace** for customers running
-  **MySQL, PostgreSQL, Microsoft SQL Server, and MongoDB**.
+  **MySQL, PostgreSQL, Microsoft SQL Server, MongoDB, and Oracle**.
 
-  The track automatically generates **realistic telemetry** for all four database
+  The track automatically generates **realistic telemetry** for all five database
   platforms via **OpenTelemetry OTLP** — slow queries, connections, lock waits, deadlocks,
-  replication lag, buffer cache hit ratios, I/O latency, and more — and deploys a dedicated
-  **Kibana dashboard** for each platform.
+  replication lag, buffer cache hit ratios, Oracle tablespace utilisation, and more —
+  and deploys a dedicated **Kibana dashboard** for each platform.
 
   **Key differentiators vs Datadog / Dynatrace:**
   - **No proprietary agents** — standard OpenTelemetry receivers
   - **SQL Server at no extra cost** (Datadog DBM charges a premium add-on)
-  - **MongoDB** is first-class (limited or paid in competitors)
+  - **MongoDB and Oracle** are first-class (limited or paid add-ons in competitors)
   - **Unlimited custom dashboards** via Lens + ES|QL
   - **AI-assisted dashboard building** with Cursor + Elastic Agent Skills in under 2 minutes
   - **Open standards** — no vendor lock-in, data sovereignty
@@ -35,6 +35,7 @@ tags:
 - serverless
 - sqlserver
 - mongodb
+- oracle
 - observability
 owner: elastic
 developers:

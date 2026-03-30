@@ -284,12 +284,71 @@ def build_mongodb():
         ])
 
 
+def build_oracle():
+    print("  Creating Oracle Lens panels...")
+    IDX = "metrics-oracledbreceiver.otel.otel-default"
+
+    kpi_sess = create_lens("Active Sessions", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | WHERE session.type == \"active\" | STATS `Active Sessions` = MAX(`oracledb.sessions.current`)",
+        "Active Sessions"))
+    kpi_proc = create_lens("Processes", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | STATS `Processes` = MAX(`oracledb.processes.count`)",
+        "Processes"))
+    kpi_phys = create_lens("Physical Reads", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | EVAL _p = TO_DOUBLE(`oracledb.physical_reads`) | STATS `Physical Reads` = MAX(_p)",
+        "Physical Reads"))
+    kpi_comm = create_lens("User Commits", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | EVAL _c = TO_DOUBLE(`oracledb.user_commits`) | STATS `User Commits` = MAX(_c)",
+        "User Commits"))
+
+    sess_t = create_lens("Sessions Over Time (Active vs Inactive)", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | STATS sessions = AVG(`oracledb.sessions.current`) BY bucket = BUCKET(@timestamp, 5 minute), `session.type` | WHERE `session.type` IS NOT NULL",
+        "area_stacked", "bucket", ["sessions"], "session.type"))
+
+    ts_bar = create_lens("Tablespace Utilisation (Used GB)", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | WHERE `oracledb.tablespace.used` IS NOT NULL | STATS used_gb = ROUND(MAX(`oracledb.tablespace.used`) / 1073741824.0, 2), total_gb = ROUND(MAX(`oracledb.tablespace.size`) / 1073741824.0, 2) BY `tablespace_name` | WHERE `tablespace_name` IS NOT NULL | SORT used_gb DESC | LIMIT 10",
+        "bar_horizontal", "tablespace_name", ["used_gb", "total_gb"], x_type="string"))
+
+    reads_t = create_lens("Physical vs Logical Reads Over Time", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | EVAL _p = TO_DOUBLE(`oracledb.physical_reads`), _l = TO_DOUBLE(`oracledb.logical_reads`) | STATS physical = MAX(_p), logical = MAX(_l) BY bucket = BUCKET(@timestamp, 5 minute), `service.name`",
+        "line", "bucket", ["physical", "logical"], "service.name"))
+
+    parse_t = create_lens("Hard vs Total Parses Over Time", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | EVAL _h = TO_DOUBLE(`oracledb.hard_parses`), _t = TO_DOUBLE(`oracledb.parse_calls`) | STATS hard = MAX(_h), total = MAX(_t) BY bucket = BUCKET(@timestamp, 5 minute)",
+        "line", "bucket", ["hard", "total"]))
+
+    txn_t = create_lens("Active Transactions Over Time", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | STATS txns = AVG(`oracledb.transactions`) BY bucket = BUCKET(@timestamp, 5 minute), `service.name`",
+        "area", "bucket", ["txns"], "service.name"))
+
+    pga_t = create_lens("PGA Memory (GB) Over Time", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | STATS pga_gb = ROUND(AVG(`oracledb.pga_memory`) / 1073741824.0, 2) BY bucket = BUCKET(@timestamp, 5 minute), `service.name`",
+        "line", "bucket", ["pga_gb"], "service.name"))
+
+    return create_dashboard(
+        "Oracle \u2014 Performance & Health",
+        "Sessions, tablespace utilisation, parse efficiency, reads, transactions and PGA memory via OpenTelemetry",
+        [
+            (kpi_sess, (0,  0, 12, 5), "Active Sessions"),
+            (kpi_proc, (12, 0, 12, 5), "Processes"),
+            (kpi_phys, (24, 0, 12, 5), "Physical Reads"),
+            (kpi_comm, (36, 0, 12, 5), "User Commits"),
+            (sess_t,   (0,  5, 24, 11), "Sessions Over Time"),
+            (ts_bar,   (24, 5, 24, 11), "Tablespace Utilisation"),
+            (reads_t,  (0,  16, 24, 11), "Physical vs Logical Reads"),
+            (parse_t,  (24, 16, 24, 11), "Parse Rate"),
+            (txn_t,    (0,  27, 24, 11), "Active Transactions"),
+            (pga_t,    (24, 27, 24, 11), "PGA Memory"),
+        ])
+
+
 if __name__ == "__main__":
     dashboards = [
         ("MySQL \u2014 Slow Query & Error Monitoring", build_mysql),
         ("PostgreSQL \u2014 Performance & Health",    build_postgres),
         ("SQL Server \u2014 Performance & Health",    build_mssql),
         ("MongoDB \u2014 Operations & Health",        build_mongodb),
+        ("Oracle \u2014 Performance & Health",        build_oracle),
     ]
     ids = []
     for name, builder in dashboards:

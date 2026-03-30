@@ -2,7 +2,7 @@
 """
 db_otel_generator.py
 Generates synthetic database monitoring telemetry via OTLP HTTP for
-MySQL, PostgreSQL, MS SQL (SQL Server), and MongoDB.
+MySQL, PostgreSQL, MS SQL (SQL Server), MongoDB, and Oracle.
 
 Sends:
   - Historical data: last N days at 5-min intervals (burst on startup)
@@ -539,18 +539,144 @@ def send_mongodb(endpoint: str, auth: str, dt: datetime, load: float, _state: di
 
 
 # ---------------------------------------------------------------------------
+# Oracle Database — metrics
+# ---------------------------------------------------------------------------
+
+ORACLE_INSTANCES = [
+    {"host": "oracle-prod-01", "service": "oracle-production",
+     "tablespaces": [
+         {"name": "SYSTEM",    "size_gb": 2.0,   "used_pct": 0.88},
+         {"name": "USERS",     "size_gb": 50.0,  "used_pct": 0.62},
+         {"name": "FINANCE",   "size_gb": 80.0,  "used_pct": 0.71},
+         {"name": "HR",        "size_gb": 30.0,  "used_pct": 0.45},
+         {"name": "ANALYTICS", "size_gb": 120.0, "used_pct": 0.55},
+         {"name": "TEMP",      "size_gb": 10.0,  "used_pct": 0.25},
+         {"name": "UNDO",      "size_gb": 8.0,   "used_pct": 0.40},
+     ]},
+    {"host": "oracle-prod-02", "service": "oracle-standby",
+     "tablespaces": [
+         {"name": "SYSTEM",  "size_gb": 2.0,  "used_pct": 0.87},
+         {"name": "USERS",   "size_gb": 50.0, "used_pct": 0.61},
+         {"name": "FINANCE", "size_gb": 80.0, "used_pct": 0.70},
+         {"name": "TEMP",    "size_gb": 10.0, "used_pct": 0.20},
+         {"name": "UNDO",    "size_gb": 8.0,  "used_pct": 0.38},
+     ]},
+]
+
+
+def _ora_gauge(name: str, value, attrs: list, unit: str = "1") -> dict:
+    return {"name": name, "unit": unit, "gauge": {"dataPoints": [{
+        "timeUnixNano": "PLACEHOLDER",
+        "asDouble": float(value),
+        "attributes": attrs,
+    }]}}
+
+
+def _ora_sum(name: str, value, attrs: list, unit: str = "1") -> dict:
+    return {"name": name, "unit": unit, "sum": {
+        "aggregationTemporality": 2,
+        "isMonotonic": True,
+        "dataPoints": [{"timeUnixNano": "PLACEHOLDER", "asInt": str(int(value)),
+                        "attributes": attrs}],
+    }}
+
+
+def send_oracle(endpoint: str, auth: str, dt: datetime, load: float, _state: dict):
+    ts = ns(dt)
+    for inst in ORACLE_INSTANCES:
+        key = inst["host"]
+        if key not in _state:
+            _state[key] = {
+                "logical_reads":   random.randint(10_000_000, 1_000_000_000),
+                "physical_reads":  random.randint(100_000, 10_000_000),
+                "hard_parses":     random.randint(10_000, 1_000_000),
+                "parse_calls":     random.randint(1_000_000, 100_000_000),
+                "user_commits":    random.randint(100_000, 10_000_000),
+                "user_rollbacks":  random.randint(1_000, 100_000),
+                "deadlocks":       random.randint(0, 50),
+                "cpu_time_ms":     random.randint(1_000_000, 100_000_000),
+            }
+        s = _state[key]
+        s["logical_reads"]  += int(load * random.randint(50_000, 500_000))
+        s["physical_reads"] += int(load * random.randint(500, 10_000))
+        s["hard_parses"]    += int(load * random.randint(50, 500))
+        s["parse_calls"]    += int(load * random.randint(5_000, 50_000))
+        s["user_commits"]   += int(load * random.randint(500, 5_000))
+        s["user_rollbacks"] += int(load * random.randint(5, 50))
+        s["cpu_time_ms"]    += int(load * random.randint(10_000, 200_000))
+        if load > 0.7 and random.random() < 0.02:
+            s["deadlocks"] += 1
+
+        active_sessions  = int(20 + load * 280 + random.gauss(0, 15))
+        inactive_sessions = int(10 + load * 80 + random.gauss(0, 8))
+        processes        = active_sessions + inactive_sessions + random.randint(5, 20)
+        active_txns      = int(load * 150 + random.gauss(0, 10))
+        pga_memory_bytes = int((512 + load * 1536 + random.gauss(0, 64)) * 1_048_576)
+
+        no_attr: list = []
+        metrics = [
+            _ora_gauge("oracledb.sessions.current", active_sessions,
+                       [attr("session.type", "active")]),
+            _ora_gauge("oracledb.sessions.current", inactive_sessions,
+                       [attr("session.type", "inactive")]),
+            _ora_gauge("oracledb.processes.count", processes, no_attr),
+            _ora_gauge("oracledb.transactions", active_txns, no_attr),
+            _ora_gauge("oracledb.pga_memory", pga_memory_bytes, no_attr, "By"),
+            _ora_sum("oracledb.logical_reads",  s["logical_reads"],  no_attr),
+            _ora_sum("oracledb.physical_reads", s["physical_reads"], no_attr),
+            _ora_sum("oracledb.hard_parses",    s["hard_parses"],    no_attr),
+            _ora_sum("oracledb.parse_calls",    s["parse_calls"],    no_attr),
+            _ora_sum("oracledb.user_commits",   s["user_commits"],   no_attr),
+            _ora_sum("oracledb.user_rollbacks", s["user_rollbacks"], no_attr),
+            _ora_sum("oracledb.enqueue_deadlocks", s["deadlocks"],   no_attr),
+            _ora_sum("oracledb.cpu_time",       s["cpu_time_ms"],    no_attr, "ms"),
+        ]
+
+        # Per-tablespace size/utilisation
+        for ts_info in inst["tablespaces"]:
+            ts_attrs = [attr("tablespace_name", ts_info["name"]),
+                        attr("tablespace_state", "online")]
+            total_bytes = int(ts_info["size_gb"] * 1_073_741_824)
+            used_bytes  = int(total_bytes * (ts_info["used_pct"] + random.uniform(-0.02, 0.02)))
+            metrics += [
+                _ora_gauge("oracledb.tablespace.size", total_bytes, ts_attrs, "By"),
+                _ora_gauge("oracledb.tablespace.used", used_bytes,  ts_attrs, "By"),
+            ]
+
+        for m in metrics:
+            dp_list = (m.get("gauge") or m.get("sum", {})).get("dataPoints", [])
+            for dp in dp_list:
+                dp["timeUnixNano"] = ts
+
+        res_attrs = [
+            attr("service.name", inst["service"]),
+            attr("host.name", inst["host"]),
+            attr("deployment.environment", "production"),
+            attr("data_stream.type", "metrics"),
+            attr("data_stream.dataset", "oracledbreceiver.otel"),
+            attr("data_stream.namespace", "default"),
+        ]
+        payload = {"resourceMetrics": [{
+            "resource": {"attributes": res_attrs},
+            "scopeMetrics": [{"scope": {"name": "oracledbreceiver.otel"}, "metrics": metrics}],
+        }]}
+        post(endpoint, auth, "/v1/metrics", payload)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def generate_window(endpoint: str, auth: str, dt: datetime,
                     pg_state: dict, ms_state: dict, mdb_state: dict,
+                    ora_state: dict,
                     metrics_now: datetime = None):
-    """Send one interval of data for all 4 DB types.
+    """Send one interval of data for all 5 DB types.
 
     MySQL slow/error logs use the historical ``dt`` timestamp — LogsDB accepts
     any timestamp.  TSDB metrics streams only accept documents within a ~2 hour
-    rolling window, so PostgreSQL/SQL Server/MongoDB always use ``metrics_now``
-    (current wall-clock time) to avoid timestamp_error failures.
+    rolling window, so PostgreSQL/SQL Server/MongoDB/Oracle always use
+    ``metrics_now`` (current wall-clock time) to avoid timestamp_error failures.
     """
     load = business_load(dt)
     ts_metrics = metrics_now or datetime.now(timezone.utc)
@@ -558,6 +684,7 @@ def generate_window(endpoint: str, auth: str, dt: datetime,
     send_postgres(endpoint, auth, ts_metrics, load, pg_state)
     send_mssql(endpoint, auth, ts_metrics, load, ms_state)
     send_mongodb(endpoint, auth, ts_metrics, load, mdb_state)
+    send_oracle(endpoint, auth, ts_metrics, load, ora_state)
 
 
 def main():
@@ -574,9 +701,10 @@ def main():
                         help="Minutes between historical data points (default: 5)")
     args = parser.parse_args()
 
-    pg_state: dict = {}
-    ms_state: dict = {}
+    pg_state:  dict = {}
+    ms_state:  dict = {}
     mdb_state: dict = {}
+    ora_state: dict = {}
 
     now = datetime.now(timezone.utc)
     start = now - timedelta(days=args.historical_days)
@@ -585,14 +713,14 @@ def main():
 
     print(f"Generating {args.historical_days}d historical data "
           f"({total} intervals × {args.interval_minutes}-min)…")
-    print("  MySQL logs: historical timestamps | PG/MSSQL/MongoDB metrics: current timestamp (TSDB window)")
+    print("  MySQL logs: historical timestamps | PG/MSSQL/MongoDB/Oracle metrics: current timestamp (TSDB window)")
 
     dt = start
     i = 0
     while dt <= now:
         now_wall = datetime.now(timezone.utc)
         generate_window(args.otlp_endpoint, args.otlp_auth, dt,
-                        pg_state, ms_state, mdb_state, metrics_now=now_wall)
+                        pg_state, ms_state, mdb_state, ora_state, metrics_now=now_wall)
         i += 1
         if i % 50 == 0:
             pct = int(100 * i / total)
@@ -607,7 +735,7 @@ def main():
             time.sleep(60)
             now = datetime.now(timezone.utc)
             generate_window(args.otlp_endpoint, args.otlp_auth, now,
-                            pg_state, ms_state, mdb_state, metrics_now=now)
+                            pg_state, ms_state, mdb_state, ora_state, metrics_now=now)
             print(f"  Live tick {now.strftime('%H:%M:%S')}")
 
 

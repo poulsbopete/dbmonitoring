@@ -34,7 +34,7 @@ const outcomes = [
   { label: 'Time to value', value: 30, suffix: ' min', color: '#f59e0b' },
 ];
 
-export function Slide10NextSteps() {
+export function Slide11NextSteps() {
   return (
     <SlideLayout shadowColor="rgba(0, 191, 165, 0.4)" shadowSpeed={42} shadowScale={72}>
       <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">
