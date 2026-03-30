@@ -3,9 +3,9 @@ slug: lab-01-database-monitoring
 id: a8za8uie5rvp
 type: challenge
 title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
-teaser: Explore live database performance data across all five of your database platforms
-  in Elastic Observability Serverless—slow queries, connections, lock waits, tablespace
-  utilisation, replication lag, and more. No proprietary agents. OpenTelemetry end to end.
+teaser: Explore live performance data across MySQL, PostgreSQL, SQL Server, MongoDB
+  and Oracle in Elastic Observability Serverless. No proprietary agents. OpenTelemetry
+  end to end.
 notes:
 - type: text
   contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n

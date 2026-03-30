@@ -35,8 +35,8 @@ tags:
 - serverless
 - sqlserver
 - mongodb
-- oracle
 - observability
+- oracle
 owner: elastic
 developers:
 - peter.simkins@elastic.co
@@ -55,5 +55,5 @@ lab_config:
   hideStopButton: false
   default_layout: AssignmentRight
   default_layout_sidebar_size: 35
-checksum: "6061524118729044496"
+checksum: "6329666056368639845"
 enhanced_loading: false
