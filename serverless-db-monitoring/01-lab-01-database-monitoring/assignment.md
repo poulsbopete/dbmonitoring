@@ -138,6 +138,15 @@ Walk through each panel:
 > it is the same price as any other OTel metric. The `sqlserverreceiver` pulls from
 > standard SQL Server DMVs — no WMI poller, no Windows-only constraint.
 
+**For reference — this is what the Datadog SQL Server dashboard looks like:**
+
+![Datadog SQL Server Overview](https://raw.githubusercontent.com/poulsbopete/dbmonitoring/main/assets/sample-dashboards/datadog-sqlserver-overview.png)
+
+Notice: Datadog exposes the same core KPIs (batch requests/s, user connections, buffer
+cache %) but requires the Datadog Agent and a DBM add-on licence. The Elastic version
+covers identical metrics via OpenTelemetry at no extra cost, with full ES|QL flexibility
+for custom panels.
+
 ---
 
 ### PostgreSQL — Performance & Health

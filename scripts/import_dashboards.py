@@ -92,6 +92,28 @@ def esql_state_xy(esql_query, series_type, x_col, y_cols, breakdown_col=None, x_
     }
 
 
+def esql_state_table(esql_query, columns):
+    """columns: list of (field_name, col_type) — col_type is 'string' or 'number'"""
+    lid = gid()
+    col_defs = []
+    vis_cols = []
+    for fname, ctype in columns:
+        cid = gid()
+        col_defs.append({"columnId": cid, "fieldName": fname, "meta": {"type": ctype}})
+        vis_cols.append({"columnId": cid, "summaryRow": "none"})
+    return {
+        "visualization": {
+            "layerId": lid, "layerType": "data",
+            "columns": vis_cols, "sorting": None,
+        },
+        "query": {"language": "kuery", "query": ""}, "filters": [],
+        "datasourceStates": {"textBased": {"layers": {lid: {
+            "query": {"esql": esql_query},
+            "columns": col_defs,
+        }}}},
+    }
+
+
 def create_dashboard(title, description, panels_grids, time_from="now-2h"):
     """panels_grids: list of (lens_id, (x,y,w,h), panel_title)"""
     panels_json = []
@@ -246,6 +268,63 @@ def build_mssql():
         ])
 
 
+def build_mssql_overview():
+    """Datadog SQL Server Overview equivalent — same layout as the Datadog screenshot."""
+    print("  Creating SQL Server Overview (Datadog-equivalent) Lens panels...")
+    IDX = "metrics-sqlserverreceiver.otel.otel-default"
+
+    # ── KPI row (mirrors Datadog: Batch reqs/s · User conns · Buffer cache % · Deadlocks) ──
+    kpi_batch = create_lens("Batch Requests/sec", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | EVAL _b = TO_DOUBLE(`sqlserver.batch_sql_request.count`) | STATS `Batch Requests/sec` = MAX(_b)",
+        "Batch Requests/sec"))
+    kpi_conn  = create_lens("User Connections", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | STATS `User Connections` = MAX(`sqlserver.user.connection.count`)",
+        "User Connections"))
+    kpi_cache = create_lens("Buffer Cache Hit %", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | STATS `Buffer Cache Hit %` = ROUND(AVG(`sqlserver.page.buffer_cache.hit_ratio`), 1)",
+        "Buffer Cache Hit %"))
+    kpi_dead  = create_lens("Deadlocks", "lnsMetric", esql_state_metric(
+        f"FROM {IDX} | EVAL _d = TO_DOUBLE(`sqlserver.deadlock.count`) | STATS `Deadlocks` = MAX(_d)",
+        "Deadlocks"))
+
+    # ── Row 2: User Connections stacked area + Batch Requests line (Datadog "Usage" section) ──
+    conn_area = create_lens("User Connections Over Time", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | STATS conns = MAX(`sqlserver.user.connection.count`) BY bucket = BUCKET(@timestamp, 5 minute), `service.instance.id`",
+        "area_stacked", "bucket", ["conns"], "service.instance.id"))
+    batch_line = create_lens("Batch Requests Over Time", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | EVAL _b = TO_DOUBLE(`sqlserver.batch_sql_request.count`) | STATS batch = MAX(_b) BY bucket = BUCKET(@timestamp, 5 minute), `service.instance.id`",
+        "line", "bucket", ["batch"], "service.instance.id"))
+
+    # ── Row 3: Lock wait time + I/O latency (Datadog "Page splits" / "SQL compilations" equiv) ──
+    lock_line = create_lens("Lock Wait Time (ms) Over Time", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | STATS lock_ms = AVG(`sqlserver.lock.wait_time.avg`) BY bucket = BUCKET(@timestamp, 5 minute), `service.instance.id`",
+        "line", "bucket", ["lock_ms"], "service.instance.id"))
+    io_line = create_lens("Read vs Write I/O Latency (ms)", "lnsXY", esql_state_xy(
+        f"FROM {IDX} | STATS read_ms = AVG(`sqlserver.database.io.read_latency`), write_ms = AVG(`sqlserver.database.io.write_latency`) BY bucket = BUCKET(@timestamp, 5 minute)",
+        "line", "bucket", ["read_ms", "write_ms"]))
+
+    # ── Row 4: Instance summary table (mirrors Datadog "Top Databases" table) ──
+    summary = create_lens("Instance Summary Table", "lnsTable", esql_state_table(
+        f"FROM {IDX} | EVAL _b = TO_DOUBLE(`sqlserver.batch_sql_request.count`), _d = TO_DOUBLE(`sqlserver.deadlock.count`) | STATS `Max Connections` = MAX(`sqlserver.user.connection.count`), `Buffer Cache %` = ROUND(AVG(`sqlserver.page.buffer_cache.hit_ratio`), 1), `Avg Lock Wait (ms)` = ROUND(AVG(`sqlserver.lock.wait_time.avg`), 2), `Deadlocks` = MAX(_d), `Batch Requests` = MAX(_b) BY `Instance` = `service.instance.id` | SORT `Max Connections` DESC",
+        [("Instance", "string"), ("Max Connections", "number"), ("Buffer Cache %", "number"),
+         ("Avg Lock Wait (ms)", "number"), ("Deadlocks", "number"), ("Batch Requests", "number")]))
+
+    return create_dashboard(
+        "SQL Server \u2014 Overview (Datadog Equivalent)",
+        "Mirrors the Datadog SQL Server Overview: batch requests, user connections, buffer cache, lock waits, I/O latency, and per-instance summary table.",
+        [
+            (kpi_batch,  (0,  0, 12, 5), "Batch Requests/sec"),
+            (kpi_conn,   (12, 0, 12, 5), "User Connections"),
+            (kpi_cache,  (24, 0, 12, 5), "Buffer Cache Hit %"),
+            (kpi_dead,   (36, 0, 12, 5), "Deadlocks"),
+            (conn_area,  (0,  5, 24, 11), "User Connections Over Time"),
+            (batch_line, (24, 5, 24, 11), "Batch Requests Over Time"),
+            (lock_line,  (0,  16, 24, 11), "Lock Wait Time (ms)"),
+            (io_line,    (24, 16, 24, 11), "Read vs Write I/O Latency"),
+            (summary,    (0,  27, 48, 10), "Instance Summary"),
+        ])
+
+
 def build_mongodb():
     print("  Creating MongoDB Lens panels...")
     kpi_conn = create_lens("Active Connections", "lnsMetric", esql_state_metric(
@@ -347,6 +426,7 @@ if __name__ == "__main__":
         ("MySQL \u2014 Slow Query & Error Monitoring", build_mysql),
         ("PostgreSQL \u2014 Performance & Health",    build_postgres),
         ("SQL Server \u2014 Performance & Health",    build_mssql),
+        ("SQL Server \u2014 Overview (Datadog Equivalent)", build_mssql_overview),
         ("MongoDB \u2014 Operations & Health",        build_mongodb),
         ("Oracle \u2014 Performance & Health",        build_oracle),
     ]
