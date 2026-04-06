@@ -2,10 +2,10 @@ version: "1"
 name: Database Monitoring — SLO Management 📊
 enabled: true
 description: |
-  Automatically creates and maintains 5 Database SLOs covering MySQL, PostgreSQL,
-  SQL Server, and MongoDB. Runs every 24 hours.
+  Automatically creates and maintains 7 Database SLOs covering MySQL, PostgreSQL,
+  SQL Server, MongoDB, IBM Db2, and Oracle. Runs every 24 hours.
   IDEMPOTENT: Deletes any existing DB Monitoring SLOs with matching names, then
-  recreates all 5. Each run leaves exactly 5 SLOs — no duplicates.
+  recreates all 7. Each run leaves exactly 7 SLOs — no duplicates.
 
   SLO Targets:
     MySQL Error-Free Log Rate    — 99% (error log events must not be level=Error)
@@ -14,6 +14,7 @@ description: |
     SQL Server Lock Wait Health  — 95% of time with avg lock wait ≤ 100 ms
     MongoDB Memory Health        — 95% of time with resident memory ≤ 2 GB
     Oracle Session Health        — 95% of time with active sessions ≤ 250
+    Db2 Buffer Pool Health       — 95% of time with buffer pool hit ratio ≥ 0.88
 
 triggers:
   - type: scheduled
@@ -66,7 +67,8 @@ steps:
           foreach.item.name : *PostgreSQL Connection Health* OR
           foreach.item.name : *SQL Server Lock Wait Health* OR
           foreach.item.name : *MongoDB Memory Health* OR
-          foreach.item.name : *Oracle Session Health*
+          foreach.item.name : *Oracle Session Health* OR
+          foreach.item.name : *Db2 Buffer Pool Health*
         steps:
           - name: print-slo-to-delete
             type: console
@@ -88,7 +90,7 @@ steps:
               message: "Skipping (not a DB SLO): {{foreach.item.name | uniq}}"
 
   # ──────────────────────────────────────────────
-  # Phase 2: Create the 5 DB SLOs
+  # Phase 2: Create the 7 DB SLOs
   # ──────────────────────────────────────────────
 
   # SLO 1 — MySQL Error-Free Log Rate
@@ -334,6 +336,48 @@ steps:
     with:
       message: "✓ Created: Oracle Session Health → id={{ steps.create-slo-oracle-sessions.output.id }}"
 
+  # SLO 7 — Db2 Buffer Pool Health
+  - name: create-slo-db2-bufferpool
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/observability/slos
+      body:
+        name: Db2 Buffer Pool Health
+        description: >
+          95% of metric samples must show buffer pool hit ratio ≥ 0.88 (0–1 scale).
+          Uses db2.bufferpool.hit_ratio from the Db2 metrics stream.
+          Grouped by service name (production vs standby).
+        indicator:
+          type: sli.kql.custom
+          params:
+            index: metrics-db2receiver.otel.otel-default
+            filter: "db2.bufferpool.hit_ratio: *"
+            good: "db2.bufferpool.hit_ratio >= 0.88"
+            total: "db2.bufferpool.hit_ratio: *"
+            timestampField: "@timestamp"
+        groupBy:
+          - service.name
+        budgetingMethod: occurrences
+        timeWindow:
+          duration: 7d
+          type: rolling
+        objective:
+          target: 0.95
+        tags:
+          - database-monitoring
+          - db2
+          - demo
+      headers:
+        Content-Type: application/json
+        Accept: application/json
+        kbn-xsrf: "true"
+
+  - name: console-slo7
+    type: console
+    with:
+      message: "✓ Created: Db2 Buffer Pool Health → id={{ steps.create-slo-db2-bufferpool.output.id }}"
+
   # ──────────────────────────────────────────────
   # Phase 3: Summary
   # ──────────────────────────────────────────────
@@ -352,6 +396,7 @@ steps:
           4. SQL Server Lock Wait Health       (95% / 7d rolling)
           5. MongoDB Memory Health             (95% / 7d rolling)
           6. Oracle Session Health             (95% / 7d rolling)
+          7. Db2 Buffer Pool Health            (95% / 7d rolling)
 
         Next run: in 24 hours (or trigger manually)
         ================================================

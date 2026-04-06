@@ -1,23 +1,23 @@
 slug: serverless-db-monitoring
 id: kz0navpyrwlk
-title: Elastic Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
+title: Elastic Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
 teaser: See Elastic's database monitoring capabilities for MySQL, PostgreSQL, SQL
-  Server, MongoDB and Oracle side-by-side vs Datadog DBM and Dynatrace. OpenTelemetry
+  Server, MongoDB, IBM Db2, and Oracle side-by-side vs Datadog DBM and Dynatrace. OpenTelemetry
   end to end, no proprietary agents.
 description: |
   **Goal:** Demonstrate Elastic Observability Serverless as a superior alternative to
   **Datadog Database Monitoring (DBM)** and **Dynatrace** for customers running
-  **MySQL, PostgreSQL, Microsoft SQL Server, MongoDB, and Oracle**.
+  **MySQL, PostgreSQL, Microsoft SQL Server, MongoDB, IBM Db2, and Oracle**.
 
-  The track automatically generates **realistic telemetry** for all five database
+  The track automatically generates **realistic telemetry** for all six database
   platforms via **OpenTelemetry OTLP** — slow queries, connections, lock waits, deadlocks,
-  replication lag, buffer cache hit ratios, Oracle tablespace utilisation, and more —
+  replication lag, buffer cache hit ratios, Db2 buffer pool and log utilisation, Oracle tablespace utilisation, and more —
   and deploys a dedicated **Kibana dashboard** for each platform.
 
   **Key differentiators vs Datadog / Dynatrace:**
   - **No proprietary agents** — standard OpenTelemetry receivers
   - **SQL Server at no extra cost** (Datadog DBM charges a premium add-on)
-  - **MongoDB and Oracle** are first-class (limited or paid add-ons in competitors)
+  - **MongoDB, Db2, and Oracle** are first-class (limited or paid add-ons in competitors)
   - **Unlimited custom dashboards** via Lens + ES|QL
   - **AI-assisted dashboard building** with Cursor + Elastic Agent Skills in under 2 minutes
   - **Open standards** — no vendor lock-in, data sovereignty
@@ -37,6 +37,7 @@ tags:
 - mongodb
 - observability
 - oracle
+- db2
 owner: elastic
 developers:
 - peter.simkins@elastic.co

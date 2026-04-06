@@ -7,6 +7,7 @@ const features = [
   { label: 'PostgreSQL Metrics', elastic: 'full', dd: 'full', dt: 'full' },
   { label: 'SQL Server Metrics', elastic: 'full', dd: 'addon', dt: 'full' },
   { label: 'MongoDB Metrics', elastic: 'full', dd: 'addon', dt: 'addon' },
+  { label: 'IBM Db2 Metrics', elastic: 'full', dd: 'addon', dt: 'addon' },
   { label: 'Oracle Database', elastic: 'full', dd: 'addon', dt: 'addon' },
   { label: 'Spotlight-style heat map & SQL overview', elastic: 'full', dd: 'partial', dt: 'partial' },
   { label: 'OpenTelemetry Native', elastic: 'full', dd: 'partial', dt: 'none' },
@@ -111,7 +112,7 @@ export function Slide10Comparison() {
 
             <div className="p-3 rounded-xl border border-[#1ba9f5]/25 bg-[#1ba9f5]/8">
               <p className="text-[#1ba9f5] text-xs font-semibold">Elastic wins on:</p>
-              <p className="text-white/65 text-[10px] leading-relaxed mt-1">OTel-native · Oracle included · Spotlight-style views · AI RCA · serverless · ES|QL</p>
+              <p className="text-white/65 text-[10px] leading-relaxed mt-1">OTel-native · Db2 + Oracle included · Spotlight-style views · AI RCA · serverless · ES|QL</p>
             </div>
           </motion.div>
         </div>

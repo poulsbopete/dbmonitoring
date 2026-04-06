@@ -9,7 +9,7 @@ const demoExtensions = [
   {
     tag: 'Observe', icon: Layers, color: '#1ba9f5',
     title: 'OTLP metrics & logs',
-    items: ['Receivers you saw map to real MySQL, Postgres, SQL Server, MongoDB, Oracle', 'Lens + ES|QL dashboards, including Spotlight-style views'],
+    items: ['Receivers you saw map to real MySQL, Postgres, SQL Server, MongoDB, Db2, Oracle', 'Lens + ES|QL dashboards, including Spotlight-style views'],
   },
   {
     tag: 'Respond', icon: ShieldCheck, color: '#a855f7',
@@ -29,9 +29,9 @@ const demoExtensions = [
 ];
 
 const outcomes = [
-  { label: 'Data ingested', value: 5, suffix: '+ streams', color: '#1ba9f5' },
-  { label: 'Dashboards', value: 8, suffix: '', color: '#a855f7' },
-  { label: 'Alert rules', value: 6, suffix: '', color: '#00bfa5' },
+  { label: 'Data ingested', value: 6, suffix: '+ streams', color: '#1ba9f5' },
+  { label: 'Dashboards', value: 10, suffix: '', color: '#a855f7' },
+  { label: 'Alert rules', value: 7, suffix: '', color: '#00bfa5' },
   { label: 'Time to value', value: 30, suffix: ' min', color: '#f59e0b' },
 ];
 
@@ -101,7 +101,7 @@ export function Slide12NextSteps() {
                 <Donut value={100} color="#1ba9f5" size={88} label="100%" sublabel="shown" delay={0.6} thickness={10} />
               </div>
               <div className="flex flex-col gap-1">
-                {['Data flowing ✓', '8 dashboards live ✓', 'Spotlight views ✓', '6 alerts + AI RCA ✓'].map(t => (
+                {['Data flowing ✓', '10 dashboards live ✓', 'Spotlight views ✓', '7 alerts + AI RCA ✓'].map(t => (
                   <div key={t} className="text-white/70 text-[10px] flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#1ba9f5]" />{t}
                   </div>

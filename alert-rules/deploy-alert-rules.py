@@ -327,6 +327,35 @@ RULES = [
         },
         "actions": workflow_action("custom_threshold.fired"),
     }),
+    # --- IBM Db2: High Connection Count ---
+    ("db-alert-db2-connections", {
+        "name": "🗄️ IBM Db2 — High Connection Count",
+        "rule_type_id": "observability.rules.custom_threshold",
+        "consumer": "observability",
+        "schedule": {"interval": "5m"},
+        "tags": ["database-monitoring", "db2", "demo"],
+        "params": {
+            "criteria": [{
+                "comparator": ">",
+                "metrics": [{"name": "A", "aggType": "avg", "field": "db2.connection.active"}],
+                "threshold": [350],
+                "timeSize": 5,
+                "timeUnit": "m",
+            }],
+            "alertOnNoData": False,
+            "alertOnGroupDisappear": False,
+            "groupBy": ["service.name"],
+            "searchConfiguration": {
+                "index": {
+                    "id": "metrics-db2receiver.otel.otel-default",
+                    "title": "metrics-db2receiver.otel.otel-default",
+                    "timeFieldName": "@timestamp",
+                },
+                "query": {"language": "kuery", "query": ""},
+            },
+        },
+        "actions": workflow_action("custom_threshold.fired"),
+    }),
     # --- Oracle: High Active Sessions ---
     ("db-alert-oracle-sessions", {
         "name": "🔴 Oracle — High Active Sessions",
@@ -421,11 +450,11 @@ if __name__ == "__main__":
         print(f"✓ RCA Workflow:  {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{wf_id}")
     if slo_wf_id:
         print(f"✓ SLO Workflow:  {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{slo_wf_id}")
-        print(f"  → Trigger once to seed the 5 DB SLOs, then runs every 24 h automatically.")
+        print(f"  → Trigger once to seed the 7 DB SLOs, then runs every 24 h automatically.")
     if wf_id:
         print("""
 ┌─ Wire RCA workflow to each rule in the UI ──────────────────────────────┐
 │  Alerts → Rules → select a rule → Edit → Actions tab                   │
 │  → Add action → Workflows → select "Database Monitoring — RCA"          │
-│  Repeat for all 5 rules.                                                │
+│  Repeat for all 7 rules.                                                │
 └─────────────────────────────────────────────────────────────────────────┘""")

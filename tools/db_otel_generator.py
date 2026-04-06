@@ -2,7 +2,7 @@
 """
 db_otel_generator.py
 Generates synthetic database monitoring telemetry via OTLP HTTP for
-MySQL, PostgreSQL, MS SQL (SQL Server), MongoDB, and Oracle.
+MySQL, PostgreSQL, MS SQL (SQL Server), MongoDB, Oracle, and IBM Db2 (LUW-style metrics).
 
 SQL Server includes on-prem and **Azure** (VM + Managed Instance) labels; MongoDB includes
 on-prem replica set and an **Atlas**-style node. **Spotlight-style** metrics
@@ -673,6 +673,104 @@ def send_mongodb(endpoint: str, auth: str, dt: datetime, load: float, _state: di
 
 
 # ---------------------------------------------------------------------------
+# IBM Db2 (LUW) — synthetic metrics (db2.* — aligns with common monitor counters)
+# ---------------------------------------------------------------------------
+
+DB2_INSTANCES = [
+    {"host": "db2-prod-luw-01", "service": "db2-production",
+     "tablespaces": [
+         {"name": "USERSPACE1", "size_gb": 120.0, "used_pct": 0.58},
+         {"name": "TEMPSPACE1", "size_gb": 32.0, "used_pct": 0.22},
+         {"name": "SYSCATSPACE", "size_gb": 8.0, "used_pct": 0.72},
+         {"name": "WAREHOUSE_TS", "size_gb": 200.0, "used_pct": 0.64},
+     ]},
+    {"host": "db2-dr-luw-02", "service": "db2-standby",
+     "tablespaces": [
+         {"name": "USERSPACE1", "size_gb": 120.0, "used_pct": 0.57},
+         {"name": "TEMPSPACE1", "size_gb": 32.0, "used_pct": 0.20},
+         {"name": "SYSCATSPACE", "size_gb": 8.0, "used_pct": 0.71},
+     ]},
+]
+
+
+def _db2_gauge(name: str, value, attrs: list, unit: str = "1") -> dict:
+    return {"name": name, "unit": unit, "gauge": {"dataPoints": [{
+        "timeUnixNano": "PLACEHOLDER",
+        "asDouble": float(value),
+        "attributes": attrs,
+    }]}}
+
+
+def _db2_sum(name: str, value, attrs: list, unit: str = "1") -> dict:
+    return {"name": name, "unit": unit, "sum": {
+        "aggregationTemporality": 2,
+        "isMonotonic": True,
+        "dataPoints": [{"timeUnixNano": "PLACEHOLDER", "asInt": str(int(value)),
+                        "attributes": attrs}],
+    }}
+
+
+def send_db2(endpoint: str, auth: str, dt: datetime, load: float, _state: dict):
+    """Emit Db2 LUW-style gauges/sums on metrics-db2receiver.otel.otel-default."""
+    ts = ns(dt)
+    for inst in DB2_INSTANCES:
+        key = inst["host"]
+        if key not in _state:
+            _state[key] = {
+                "deadlocks": random.randint(0, 8),
+                "sort_overflows": random.randint(0, 200),
+            }
+        st = _state[key]
+        if load > 0.75 and random.random() < 0.03:
+            st["deadlocks"] += 1
+        st["sort_overflows"] += int(load * random.randint(0, 15))
+
+        active_conn = int(40 + load * 320 + random.gauss(0, 12))
+        hit_ratio = min(0.999, max(0.75, 0.92 + load * 0.04 + random.gauss(0, 0.015)))
+        log_util = min(99.0, max(5.0, 35 + load * 45 + random.gauss(0, 6)))
+        lock_wait_ms = max(0.0, load * 28 + random.gauss(0, 8))
+
+        no_attr: list = []
+        metrics = [
+            _db2_gauge("db2.connection.active", float(active_conn), no_attr),
+            _db2_gauge("db2.bufferpool.hit_ratio", hit_ratio, no_attr, "1"),
+            _db2_gauge("db2.log.utilization", log_util, no_attr, "%"),
+            _db2_gauge("db2.lock.wait_time.avg", lock_wait_ms, no_attr, "ms"),
+            _db2_sum("db2.deadlock.count", st["deadlocks"], no_attr),
+            _db2_sum("db2.sort.overflow.count", st["sort_overflows"], no_attr),
+        ]
+
+        for ts_info in inst["tablespaces"]:
+            ts_attrs = [attr("db2.tablespace.name", ts_info["name"])]
+            total_bytes = int(ts_info["size_gb"] * 1_073_741_824)
+            used_bytes = int(total_bytes * (ts_info["used_pct"] + random.uniform(-0.02, 0.02)))
+            metrics += [
+                _db2_gauge("db2.tablespace.size", float(total_bytes), ts_attrs, "By"),
+                _db2_gauge("db2.tablespace.used", float(used_bytes), ts_attrs, "By"),
+            ]
+
+        for m in metrics:
+            dp_list = (m.get("gauge") or m.get("sum", {})).get("dataPoints", [])
+            for dp in dp_list:
+                dp["timeUnixNano"] = ts
+
+        res_attrs = [
+            attr("service.name", inst["service"]),
+            attr("host.name", inst["host"]),
+            attr("db2.instance.name", inst["host"]),
+            attr("deployment.environment", "production"),
+            attr("data_stream.type", "metrics"),
+            attr("data_stream.dataset", "db2receiver.otel"),
+            attr("data_stream.namespace", "default"),
+        ]
+        payload = {"resourceMetrics": [{
+            "resource": {"attributes": res_attrs},
+            "scopeMetrics": [{"scope": {"name": "db2receiver.otel"}, "metrics": metrics}],
+        }]}
+        post(endpoint, auth, "/v1/metrics", payload)
+
+
+# ---------------------------------------------------------------------------
 # Oracle Database — metrics
 # ---------------------------------------------------------------------------
 
@@ -803,13 +901,13 @@ def send_oracle(endpoint: str, auth: str, dt: datetime, load: float, _state: dic
 
 def generate_window(endpoint: str, auth: str, dt: datetime,
                     pg_state: dict, ms_state: dict, mdb_state: dict,
-                    ora_state: dict,
+                    ora_state: dict, db2_state: dict,
                     metrics_now: datetime = None):
-    """Send one interval of data for all 5 DB types.
+    """Send one interval of data for all database types (logs + metrics).
 
     MySQL slow/error logs use the historical ``dt`` timestamp — LogsDB accepts
     any timestamp.  TSDB metrics streams only accept documents within a ~2 hour
-    rolling window, so PostgreSQL/SQL Server/MongoDB/Oracle always use
+    rolling window, so PostgreSQL/SQL Server/MongoDB/Oracle/Db2 always use
     ``metrics_now`` (current wall-clock time) to avoid timestamp_error failures.
     """
     load = business_load(dt)
@@ -819,6 +917,7 @@ def generate_window(endpoint: str, auth: str, dt: datetime,
     send_mssql(endpoint, auth, ts_metrics, load, ms_state)
     send_mongodb(endpoint, auth, ts_metrics, load, mdb_state)
     send_oracle(endpoint, auth, ts_metrics, load, ora_state)
+    send_db2(endpoint, auth, ts_metrics, load, db2_state)
 
 
 def main():
@@ -839,6 +938,7 @@ def main():
     ms_state:  dict = {}
     mdb_state: dict = {}
     ora_state: dict = {}
+    db2_state: dict = {}
 
     now = datetime.now(timezone.utc)
     start = now - timedelta(days=args.historical_days)
@@ -847,14 +947,14 @@ def main():
 
     print(f"Generating {args.historical_days}d historical data "
           f"({total} intervals × {args.interval_minutes}-min)…")
-    print("  MySQL logs: historical timestamps | PG/MSSQL/MongoDB/Oracle metrics: current timestamp (TSDB window)")
+    print("  MySQL logs: historical timestamps | PG/MSSQL/MongoDB/Oracle/Db2 metrics: current timestamp (TSDB window)")
 
     dt = start
     i = 0
     while dt <= now:
         now_wall = datetime.now(timezone.utc)
         generate_window(args.otlp_endpoint, args.otlp_auth, dt,
-                        pg_state, ms_state, mdb_state, ora_state, metrics_now=now_wall)
+                        pg_state, ms_state, mdb_state, ora_state, db2_state, metrics_now=now_wall)
         i += 1
         if i % 50 == 0:
             pct = int(100 * i / total)
@@ -869,7 +969,7 @@ def main():
             time.sleep(60)
             now = datetime.now(timezone.utc)
             generate_window(args.otlp_endpoint, args.otlp_auth, now,
-                            pg_state, ms_state, mdb_state, ora_state, metrics_now=now)
+                            pg_state, ms_state, mdb_state, ora_state, db2_state, metrics_now=now)
             print(f"  Live tick {now.strftime('%H:%M:%S')}")
 
 

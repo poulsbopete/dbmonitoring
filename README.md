@@ -1,7 +1,7 @@
 # Elastic Database Monitoring
 
 **Instruqt** demo: **Elastic Observability Serverless** with synthetic OpenTelemetry data,
-positioned against **Datadog Database Monitoring (DBM)** and **Dynatrace** across five
+positioned against **Datadog Database Monitoring (DBM)** and **Dynatrace** across six
 database platforms.
 
 **Try the hands-on sandbox:** [Instruqt invite — Database monitoring](https://play.instruqt.com/elastic/invite/m33cztpvt73h)
@@ -17,6 +17,7 @@ database platforms.
 | MySQL | High |
 | MongoDB | Medium |
 | Oracle | Medium |
+| IBM Db2 | Medium |
 
 Competitors in scope: **Datadog DBM**, **Dynatrace**.
 
@@ -36,13 +37,14 @@ Elastic Managed OTLP endpoint
         ├── metrics-postgresqlreceiver.otel.otel-default  ← PG metrics
         ├── metrics-sqlserverreceiver.otel.otel-default   ← SQL Server metrics
         ├── metrics-mongodbatlas.otel.otel-default        ← MongoDB metrics
+        ├── metrics-db2receiver.otel.otel-default         ← IBM Db2 LUW metrics
         └── metrics-oracledbreceiver.otel.otel-default    ← Oracle metrics
         │
         ▼
-Kibana Dashboards (5 × platform + Datadog-style SQL overview + 3 × Spotlight-style incl. flow/topology,
+Kibana Dashboards (6 × platform + Datadog-style SQL overview + 3 × Spotlight-style incl. flow/topology,
   deployed on track start)
-Alert Rules      (6 × pre-wired rules with AI RCA workflow)
-SLOs             (6 × service level objectives, managed via workflow)
+Alert Rules      (7 × pre-wired rules with AI RCA workflow)
+SLOs             (7 × service level objectives, managed via workflow)
 ```
 
 No Grafana Alloy, no proprietary agent — pure Python + OTLP HTTP.
@@ -54,12 +56,12 @@ No Grafana Alloy, no proprietary agent — pure Python + OTLP HTTP.
 ```
 dbmonitoring/
 ├── tools/
-│   ├── db_otel_generator.py      # Synthetic telemetry for all 5 DB types
+│   ├── db_otel_generator.py      # Synthetic telemetry for all 6 DB types
 │   └── requirements.txt          # requests>=2.31.0
 ├── scripts/
 │   └── import_dashboards.py      # Deploys all dashboards (platform + Spotlight) via Dashboards API (9.4+)
 ├── alert-rules/
-│   └── deploy-alert-rules.py     # Deploys 6 alert rules + RCA/SLO workflows
+│   └── deploy-alert-rules.py     # Deploys 7 alert rules + RCA/SLO workflows
 ├── workflows/
 │   ├── rca-workflow.yaml         # AI-powered Root Cause Analysis workflow
 │   └── db-slo-workflow.yaml      # Idempotent SLO management workflow (runs every 24h)
@@ -67,7 +69,7 @@ dbmonitoring/
 │   ├── sample-dashboards/        # Datadog/Dynatrace prompt examples + screenshots
 │   └── spotlight-otel-gaps.md    # Spotlight vs OpenTelemetry coverage (PaaS, OS, logs)
 ├── slides/                       # Customer-facing slide deck (React + Vite + Tailwind)
-│   └── src/slides/               # 12 slides, deployed to GitHub Pages
+│   └── src/slides/               # 13 slides, deployed to GitHub Pages
 └── serverless-db-monitoring/     # Instruqt track
     ├── track.yml
     ├── config.yml
@@ -117,6 +119,14 @@ dbmonitoring/
   `host.is_virtual`
 - **Storage**: TSDB (live timestamps only, ~2h window)
 
+### IBM Db2 (metrics)
+- **2 instances** (`db2-prod-luw-01` production, `db2-dr-luw-02` standby)
+- **Tablespaces** (per instance): USERSPACE1, TEMPSPACE1, SYSCATSPACE, WAREHOUSE_TS (prod only)
+- Connection and health: `db2.connection.active`, `db2.bufferpool.hit_ratio`, `db2.log.utilization`,
+  `db2.lock.wait_time.avg`, `db2.deadlock.count`, `db2.sort.overflow.count`
+- Capacity: `db2.tablespace.size`, `db2.tablespace.used` (by `db2.tablespace.name`)
+- **Storage**: TSDB (live timestamps only, ~2h window)
+
 ### MongoDB (metrics)
 - **3 nodes**: **2** on-premises (replica set `rs0`) + **1** Atlas-style primary
   (`mongo-atlas-shard0`, `cloud.provider=aws`)
@@ -151,6 +161,7 @@ dbmonitoring/
 | 🐘 PostgreSQL — High Connection Count | `custom_threshold` | avg backends > 80 |
 | 💾 SQL Server — High Active Transactions | `custom_threshold` | avg active txns > 100 |
 | 🍃 MongoDB — High Operations Rate | `custom_threshold` | avg ops > 5000 |
+| 🗄️ IBM Db2 — High Connection Count | `custom_threshold` | avg connections > 350 |
 | 🔴 Oracle — High Active Sessions | `custom_threshold` | avg sessions > 250 |
 
 All rules are deployed by `alert-rules/deploy-alert-rules.py` and wired to the AI RCA workflow.
@@ -167,6 +178,7 @@ All rules are deployed by `alert-rules/deploy-alert-rules.py` and wired to the A
 | SQL Server Lock Wait Health | 95% | `sqlserver.lock.wait_time.avg <= 100` |
 | MongoDB Memory Health | 95% | `mongodb.memory.usage <= 2 GB` |
 | Oracle Session Health | 95% | `oracledb.sessions.current <= 250` |
+| Db2 Buffer Pool Health | 95% | `db2.bufferpool.hit_ratio >= 0.88` |
 
 The SLO workflow (`db-slo-workflow.yaml`) is idempotent and runs every 24h automatically.
 
@@ -182,6 +194,7 @@ The SLO workflow (`db-slo-workflow.yaml`) is idempotent and runs every 24h autom
 | PostgreSQL | ✓ | ✓ | ✓ |
 | **SQL Server** | ✓ extra cost | ✓ | ✓ **same price** |
 | **MongoDB** | ✓ extra cost | Limited | ✓ |
+| **IBM Db2** | ✓ extra cost | ✓ extra cost | ✓ **same price** |
 | **Oracle** | ✓ extra cost | ✓ extra cost | ✓ **same price** |
 | Custom dashboards | Template-only | Template-only | **Unlimited — Lens + ES\|QL** |
 | AI-assisted dashboard building | ✗ | ✗ | ✓ **Cursor + Agent Skills** |
@@ -201,13 +214,13 @@ pip install -r tools/requirements.txt
 export WORKSHOP_OTLP_ENDPOINT="https://xxx.ingest.us-east-1.aws.elastic.cloud"
 export WORKSHOP_OTLP_AUTH_HEADER="ApiKey <your-api-key>"
 
-# Generate live data for all 5 DB types
+# Generate live data for all 6 DB types
 python3 tools/db_otel_generator.py \
   --otlp-endpoint "$WORKSHOP_OTLP_ENDPOINT" \
   --otlp-auth "$WORKSHOP_OTLP_AUTH_HEADER" \
   --live
 
-# Deploy all 5 dashboards
+# Deploy all dashboards (10 total)
 export KIBANA_URL="https://xxx.kb.us-east-1.aws.elastic.cloud"
 export ES_API_KEY="<your-api-key>"
 python3 scripts/import_dashboards.py

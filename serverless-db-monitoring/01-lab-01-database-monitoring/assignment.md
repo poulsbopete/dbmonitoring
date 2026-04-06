@@ -2,9 +2,9 @@
 slug: lab-01-database-monitoring
 id: a8za8uie5rvp
 type: challenge
-title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
-teaser: Explore live performance data across MySQL, PostgreSQL, SQL Server, MongoDB
-  and Oracle in Elastic Observability Serverless. No proprietary agents. OpenTelemetry
+title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
+teaser: Explore live performance data across MySQL, PostgreSQL, SQL Server, MongoDB,
+  IBM Db2, and Oracle in Elastic Observability Serverless. No proprietary agents. OpenTelemetry
   end to end.
 notes:
 - type: text
@@ -15,11 +15,11 @@ notes:
   contents: |
     ## Data is loading…
 
-    The track bootstrap is generating telemetry for all five database
+    The track bootstrap is generating telemetry for all six database
     platforms via OpenTelemetry → Elastic managed OTLP:
 
     ```
-    MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
+    MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
                 │
                 │  Python OTLP HTTP  (db_otel_generator.py)
                 ▼
@@ -31,10 +31,11 @@ notes:
       metrics-postgresql.*  ← connections, commits, deadlocks, size
       metrics-sqlserver.*   ← connections, lock waits, cache hit, I/O latency
       metrics-mongodb.*     ← operations, memory, replication lag
+      metrics-db2.*         ← connections, buffer pool, log util, tablespaces
       metrics-oracledb.*    ← sessions, tablespaces, parses, PGA memory
                 │
                 ▼
-         Kibana Dashboards  (5 deployed automatically)
+         Kibana Dashboards  (10 deployed automatically)
     ```
 
     No proprietary agents. Pure OpenTelemetry.
@@ -50,6 +51,7 @@ notes:
     | PostgreSQL | ✓ | ✓ | ✓ |
     | **SQL Server** | ✓ extra cost | ✓ | ✓ **same price** |
     | **MongoDB** | ✓ extra cost | Limited | ✓ |
+    | **IBM Db2** | ✓ extra cost | ✓ extra cost | ✓ **same price** |
     | **Oracle** | ✓ extra cost | ✓ extra cost | ✓ **same price** |
     | Custom dashboards | Template-only | Template-only | **Unlimited — Lens + ES\|QL** |
     | AI-assisted dashboard building | ✗ | ✗ | **✓ Cursor + Agent Skills** |
@@ -82,11 +84,11 @@ timelimit: 0
 enhanced_loading: null
 ---
 
-# Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Oracle
+# Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
 
 ## Part 1 — Explore the pre-built dashboards
 
-Five dashboards were deployed automatically when this track started.
+Ten dashboards were deployed automatically when this track started (six database platforms plus SQL Server overview and three Spotlight-style views).
 Open **Elastic Serverless → Dashboards** and set the time picker to **Last 2 hours**.
 
 ---
@@ -211,6 +213,27 @@ chains, ERRORLOG text, full Windows OS counters, PaaS SQL boundaries).
 > **Talking point vs Dynatrace:**
 > MongoDB monitoring is limited in Dynatrace and a **paid add-on** in Datadog.
 > Elastic supports it natively — same OTLP pipeline, same Kibana dashboards API.
+
+---
+
+### IBM Db2 — Performance & Health (LUW)
+
+**Dashboard:** `IBM Db2 — Performance & Health (LUW)`
+
+1. **Active connections** — production and standby instances; load follows the shared business-hours curve.
+2. **Buffer pool hit ratio** — values on a 0–1 scale; the SLO workflow tracks samples ≥ 0.88.
+3. **Log utilization %** — transaction log headroom; spikes correlate with write-heavy load.
+4. **Avg lock wait (ms)** — concurrency pressure alongside connection counts.
+5. **Connections over time** — stacked by `service.name` (`db2-production` vs `db2-standby`).
+6. **Buffer pool hit ratio trend** — same signal as the KPI row, over time per instance.
+7. **Tablespace footprint** — used vs total GB for USERSPACE1, TEMPSPACE1, SYSCATSPACE, WAREHOUSE_TS (where present).
+8. **Deadlocks & sort overflows** — monotonic counters from the synthetic workload.
+9. **Log utilization over time** — split by `host.name` for prod vs DR storytelling.
+
+> **Talking point vs Datadog / Dynatrace:**  
+> Db2 monitoring is often a **paid add-on** or a separate module. In Elastic, LUW-style metrics
+> flow through the same **OpenTelemetry → managed OTLP** path as the other engines, with ES|QL dashboards on
+> `metrics-db2receiver.otel.otel-default`.
 
 ---
 
@@ -391,6 +414,25 @@ Deploy the dashboard to Kibana when done.
 
 ---
 
+**Prompt for IBM Db2:**
+
+```
+I want to build an IBM Db2 LUW monitoring dashboard in Elastic.
+
+Use these data sources:
+- Index: metrics-db2receiver.otel.otel-default
+- Key fields: db2.connection.active, db2.bufferpool.hit_ratio, db2.log.utilization,
+  db2.lock.wait_time.avg, db2.deadlock.count, db2.sort.overflow.count,
+  db2.tablespace.size, db2.tablespace.used (with db2.tablespace.name attribute),
+  service.name, host.name, db2.instance.name
+
+Build panels for: connections over time, buffer pool hit ratio, log utilization,
+lock waits, tablespace used vs size, and deadlock / sort overflow trends.
+Deploy the dashboard to Kibana when done.
+```
+
+---
+
 **Prompt for Oracle:**
 
 ```
@@ -478,6 +520,8 @@ tail -f /tmp/db-monitoring-logs/generator.log
 # Confirm data is reaching Elastic (spot-check each stream)
 curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
   "${ES_URL}/metrics-sqlserverreceiver.otel.otel-default/_count" | jq .count
+curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
+  "${ES_URL}/metrics-db2receiver.otel.otel-default/_count" | jq .count
 curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
   "${ES_URL}/metrics-oracledbreceiver.otel.otel-default/_count" | jq .count
 ```

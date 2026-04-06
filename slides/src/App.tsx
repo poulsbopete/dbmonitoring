@@ -8,6 +8,7 @@ import { Slide04MySQL } from './slides/Slide04MySQL';
 import { Slide05Postgres } from './slides/Slide05Postgres';
 import { Slide06SQLServer } from './slides/Slide06SQLServer';
 import { Slide07MongoDB } from './slides/Slide07MongoDB';
+import { Slide08Db2 } from './slides/Slide08Db2';
 import { Slide08Oracle } from './slides/Slide08Oracle';
 import { Slide09Spotlight } from './slides/Slide09Spotlight';
 import { Slide10Comparison } from './slides/Slide10Comparison';
@@ -22,6 +23,7 @@ const SLIDES = [
   Slide05Postgres,
   Slide06SQLServer,
   Slide07MongoDB,
+  Slide08Db2,
   Slide08Oracle,
   Slide09Spotlight,
   Slide10Comparison,

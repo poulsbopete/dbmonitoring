@@ -6,7 +6,7 @@ const steps = [
   {
     icon: Bell, num: '01', color: '#ef4444',
     title: 'Alert Fires',
-    items: ['6 pre-wired rules', 'MySQL · PG · SQL · Mongo · Oracle', 'ES|QL threshold check', 'Debounced, noise-free'],
+    items: ['7 pre-wired rules', 'MySQL · PG · SQL · Mongo · Db2 · Oracle', 'ES|QL threshold check', 'Debounced, noise-free'],
     badge: 'Kibana Alerting',
   },
   {

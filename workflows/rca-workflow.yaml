@@ -2,7 +2,7 @@ version: "1"
 name: Database Monitoring — Root Cause Analysis 🚨
 description: >
   AI-powered Root Cause Analysis workflow for database monitoring alerts.
-  Investigates MySQL, PostgreSQL, SQL Server, and MongoDB anomalies using the
+  Investigates MySQL, PostgreSQL, SQL Server, MongoDB, IBM Db2, and Oracle anomalies using the
   Observability AI Agent, then creates a case with a full investigation summary.
 enabled: true
 tags:
@@ -26,9 +26,9 @@ steps:
           Investigate the following database monitoring alert: {{ event | json }}
 
           This alert was triggered by our database monitoring system covering MySQL, PostgreSQL,
-          SQL Server, and MongoDB. Please:
+          SQL Server, MongoDB, IBM Db2, and Oracle. Please:
           1. Query the relevant data streams to understand the scope of the issue
-          2. Look for correlated anomalies across all four database types
+          2. Look for correlated anomalies across all six relational / operational database platforms
           3. Identify the most likely root cause(s)
           4. Suggest immediate remediation steps
 
@@ -38,6 +38,8 @@ steps:
           - metrics-postgresqlreceiver.otel.otel-default (PostgreSQL metrics)
           - metrics-sqlserverreceiver.otel.otel-default (SQL Server metrics)
           - metrics-mongodbatlas.otel.otel-default (MongoDB metrics)
+          - metrics-db2receiver.otel.otel-default (IBM Db2 LUW metrics)
+          - metrics-oracledbreceiver.otel.otel-default (Oracle metrics)
 
           Keep your investigation concise and focused. Use emojis to make the output readable. 🔍
 

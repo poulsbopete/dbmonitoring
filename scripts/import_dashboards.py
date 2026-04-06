@@ -566,6 +566,55 @@ def build_spotlight_sql_overview():
     )
 
 
+def build_db2():
+    print("  Building IBM Db2 dashboard (Dashboards API)...")
+    IDX = "metrics-db2receiver.otel.otel-default"
+    TB = TB_AUTO
+    panels = [
+        P((0, 0, 12, 5), "Active connections", viz_metric(
+            "", f"FROM {IDX} | STATS `Active connections` = MAX(`db2.connection.active`)",
+            "Active connections")),
+        P((12, 0, 12, 5), "Buffer pool hit ratio", viz_metric(
+            "", f"FROM {IDX} | STATS `Hit ratio` = ROUND(AVG(`db2.bufferpool.hit_ratio`), 4)",
+            "Hit ratio")),
+        P((24, 0, 12, 5), "Log utilization %", viz_metric(
+            "", f"FROM {IDX} | STATS `Log util %` = ROUND(AVG(`db2.log.utilization`), 1)",
+            "Log util %")),
+        P((36, 0, 12, 5), "Avg lock wait (ms)", viz_metric(
+            "", f"FROM {IDX} | STATS `Lock wait ms` = ROUND(AVG(`db2.lock.wait_time.avg`), 2)",
+            "Lock wait ms")),
+        P((0, 5, 24, 11), "Connections over time", viz_xy(
+            "Active connections by instance",
+            f"FROM {IDX} | STATS conns = AVG(`db2.connection.active`) BY bucket = {TB}, `service.name`",
+            "area_stacked", "bucket", ["conns"], "service.name")),
+        P((24, 5, 24, 11), "Buffer pool hit ratio trend", viz_xy(
+            "Buffer pool hit ratio (0–1)",
+            f"FROM {IDX} | STATS hit = AVG(`db2.bufferpool.hit_ratio`) BY bucket = {TB}, `service.name`",
+            "line", "bucket", ["hit"], "service.name")),
+        P((0, 16, 24, 11), "Tablespace used (GB)", viz_xy(
+            "Tablespace footprint",
+            f"FROM {IDX} | WHERE `db2.tablespace.used` IS NOT NULL "
+            "| STATS used_gb = ROUND(MAX(`db2.tablespace.used`) / 1073741824.0, 2), "
+            "total_gb = ROUND(MAX(`db2.tablespace.size`) / 1073741824.0, 2) BY `db2.tablespace.name` "
+            "| WHERE `db2.tablespace.name` IS NOT NULL | SORT used_gb DESC | LIMIT 12",
+            "bar_horizontal", "db2.tablespace.name", ["used_gb", "total_gb"])),
+        P((24, 16, 24, 11), "Deadlocks & sort overflows", viz_xy(
+            "Deadlocks vs sort overflows (cumulative-style counters)",
+            f"FROM {IDX} | EVAL _d = TO_DOUBLE(`db2.deadlock.count`), _s = TO_DOUBLE(`db2.sort.overflow.count`) "
+            f"| STATS deadlocks = MAX(_d), sort_ovf = MAX(_s) BY bucket = {TB}",
+            "line", "bucket", ["deadlocks", "sort_ovf"])),
+        P((0, 27, 48, 10), "Log utilization over time", viz_xy(
+            "Transaction log utilization %",
+            f"FROM {IDX} | STATS log_pct = AVG(`db2.log.utilization`) BY bucket = {TB}, `host.name`",
+            "area", "bucket", ["log_pct"], "host.name")),
+    ]
+    return create_dashboard_api(
+        "IBM Db2 \u2014 Performance & Health (LUW)",
+        "Connections, buffer pool, log utilization, lock waits, tablespaces, and sort health via synthetic OpenTelemetry db2.* metrics.",
+        panels,
+    )
+
+
 def build_oracle():
     print("  Building Oracle dashboard (Dashboards API)...")
     IDX = "metrics-oracledbreceiver.otel.otel-default"
@@ -624,6 +673,7 @@ if __name__ == "__main__":
         ("Spotlight \u2014 Flow & topology (SQL Server, synthetic)", build_spotlight_flow),
         ("Spotlight \u2014 SQL Server Overview (synthetic)", build_spotlight_sql_overview),
         ("MongoDB \u2014 Operations & Health", build_mongodb),
+        ("IBM Db2 \u2014 Performance & Health (LUW)", build_db2),
         ("Oracle \u2014 Performance & Health", build_oracle),
     ]
     ids = []

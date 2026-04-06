@@ -7,6 +7,7 @@ const sources = [
   { label: 'PostgreSQL', color: '#3b82f6', sub: 'Connections · Deadlocks', stream: 'TSDB' },
   { label: 'SQL Server', color: '#8b5cf6', sub: 'Batch requests · Locks', stream: 'TSDB' },
   { label: 'MongoDB', color: '#00bfa5', sub: 'Operations · Memory', stream: 'TSDB' },
+  { label: 'IBM Db2', color: '#4589ff', sub: 'Buffer pool · Logs · Tablespaces', stream: 'TSDB' },
   { label: 'Oracle', color: '#f97316', sub: 'Sessions · Tablespaces · Parses', stream: 'TSDB' },
 ];
 
@@ -30,7 +31,7 @@ export function Slide03Architecture() {
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase mb-1">How It Works</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
-            One Pipeline, <span className="text-white/55">Five Databases</span>
+            One Pipeline, <span className="text-white/55">Six Databases</span>
           </h2>
         </motion.div>
 
@@ -82,13 +83,14 @@ export function Slide03Architecture() {
               <div className="flex-1 p-4 rounded-xl border border-[#1ba9f5]/25 bg-[#1ba9f5]/6 flex flex-col gap-2">
                 <div className="flex items-center gap-2 pb-2 border-b border-white/10">
                   <BarChart3 size={15} className="text-[#1ba9f5]" />
-                  <span className="text-white font-semibold text-sm">8 Kibana dashboards</span>
+                  <span className="text-white font-semibold text-sm">10 Kibana dashboards</span>
                 </div>
                 {[
                   { stream: 'logs-mysql.*', color: '#f59e0b', label: 'Slow queries + errors' },
                   { stream: 'metrics-postgresql.*', color: '#3b82f6', label: 'DB health metrics' },
                   { stream: 'metrics-sqlserver.*', color: '#8b5cf6', label: 'Batch & transactions' },
                   { stream: 'metrics-mongodb.*', color: '#00bfa5', label: 'Ops, memory, conns' },
+                  { stream: 'metrics-db2.*', color: '#4589ff', label: 'Buffer pool, logs, locks' },
                   { stream: 'metrics-oracledb.*', color: '#f97316', label: 'Sessions, tablespaces' },
                 ].map(({ stream, color, label }) => (
                   <div key={stream} className="flex items-center gap-2">
@@ -115,7 +117,7 @@ export function Slide03Architecture() {
                 </div>
               </div>
               <div className="flex gap-1.5">
-                {['6 Alert Rules', 'Cases', 'SLOs'].map(t => (
+                {['7 Alert Rules', 'Cases', 'SLOs'].map(t => (
                   <div key={t} className="flex-1 text-center text-[9px] text-white/55 border border-white/12 rounded-lg py-1.5">{t}</div>
                 ))}
               </div>
