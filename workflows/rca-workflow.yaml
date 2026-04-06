@@ -40,7 +40,6 @@ steps:
           - metrics-mongodbatlas.otel.otel-default (MongoDB metrics)
 
           Keep your investigation concise and focused. Use emojis to make the output readable. 🔍
-    timeout: 10m
 
   # Phase 2: Generate a clear case title
   - name: create_case_title
@@ -57,7 +56,6 @@ steps:
           Based on this investigation, generate a concise case title that clearly identifies
           the database type, issue type, and severity. Only return the title, nothing else.
           Format: [DB Type] — [Issue] ([Severity])
-    timeout: 5m
 
   # Phase 3: Generate a detailed case description
   - name: create_case_description
@@ -74,7 +72,6 @@ steps:
           Based on this investigation, write a 2-3 sentence case description suitable for
           an incident ticket. Include: what was detected, which database(s) are affected,
           and the suspected root cause. Only return the description, nothing else.
-    timeout: 5m
 
   # Phase 4: Create the Observability case
   - name: create_case
@@ -133,7 +130,7 @@ steps:
         owner: observability
         comment: |
           ## 🔍 AI Investigation Summary
-          [View Full Conversation]({{ context.kibana_url }}/app/agent_builder/conversations/{{ steps.rca_analysis.output.conversation_id }})
+          [View full conversation](/app/agent_builder/conversations/{{ steps.rca_analysis.output.conversation_id }})
 
           ### Investigation Steps
 
@@ -166,7 +163,7 @@ steps:
           {%- if has_error %}
           - ❌ **Error:** {{ error_message }}
           {%- elsif query_esql != "" %}
-          - ✅ **Found {{ result_count }} results** → [View in Discover]({{ context.kibana_url }}/app/discover#/?_a=(dataSource:(type:esql),query:(esql:'{{ query_esql | url_encode }}')))
+          - ✅ **Found {{ result_count }} results** → [View in Discover](/app/discover#/?_a=(dataSource:(type:esql),query:(esql:'{{ query_esql | url_encode }}')))
           {%- else %}
           - ✅ **Completed**
           {%- endif %}

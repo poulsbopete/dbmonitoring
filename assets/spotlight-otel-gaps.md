@@ -27,6 +27,10 @@ Synthetic gauges (not all are standard semantic conventions):
 - **Error log text**: Spotlight parses ERRORLOG; OTel would use **logs** (not only metrics) with a filelog or sidecar tailing the log.
 - **PaaS SQL (Azure SQL / MI)**: No “Windows host” row in the heat map; health must be derived from **database/engine metrics** and platform signals.
 
-## Heat map colours in Kibana
+## Health grid / severity in Kibana
 
-Lens maps cell **value** to a colour ramp. Tune the palette so higher `spotlight.health.severity` maps toward **red** and low values toward **blue/green** (Panel settings → Colour).
+The lab deploys a **Lens treemap** (same ES|QL as a heat map: `bucket` × `spotlight.grid_row`, metric = max `spotlight.health.severity`) because **inline `type: heatmap`** is not accepted by **POST /api/dashboards** on Elastic Observability Serverless. Treemap gives a real 2D partition (time × row) with size/colour from severity.
+
+To use a **classic cell heat map**, open the dashboard in Kibana → **Edit** → convert that panel to **Heat map** in Lens (if your stack supports ES|QL heat maps in the UI).
+
+Tune colours so higher `spotlight.health.severity` maps toward **red** and low values toward **blue/green** (Panel settings → Colour).

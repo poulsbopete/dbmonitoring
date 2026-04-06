@@ -37,7 +37,7 @@ Elastic Managed OTLP endpoint
         └── metrics-oracledbreceiver.otel.otel-default    ← Oracle metrics
         │
         ▼
-Kibana Dashboards (5 × platform + Datadog-style SQL overview + 2 × Spotlight-style,
+Kibana Dashboards (5 × platform + Datadog-style SQL overview + 3 × Spotlight-style incl. flow/topology,
   deployed on track start)
 Alert Rules      (6 × pre-wired rules with AI RCA workflow)
 SLOs             (6 × service level objectives, managed via workflow)
@@ -55,7 +55,7 @@ dbmonitoring/
 │   ├── db_otel_generator.py      # Synthetic telemetry for all 5 DB types
 │   └── requirements.txt          # requests>=2.31.0
 ├── scripts/
-│   └── import_dashboards.py      # Deploys all dashboards (platform + Spotlight) via Saved Objects API
+│   └── import_dashboards.py      # Deploys all dashboards (platform + Spotlight) via Dashboards API (9.4+)
 ├── alert-rules/
 │   └── deploy-alert-rules.py     # Deploys 6 alert rules + RCA/SLO workflows
 ├── workflows/
@@ -65,7 +65,7 @@ dbmonitoring/
 │   ├── sample-dashboards/        # Datadog/Dynatrace prompt examples + screenshots
 │   └── spotlight-otel-gaps.md    # Spotlight vs OpenTelemetry coverage (PaaS, OS, logs)
 ├── slides/                       # Customer-facing slide deck (React + Vite + Tailwind)
-│   └── src/slides/               # 11 slides, deployed to GitHub Pages
+│   └── src/slides/               # 12 slides, deployed to GitHub Pages
 └── serverless-db-monitoring/     # Instruqt track
     ├── track.yml
     ├── config.yml
@@ -108,6 +108,7 @@ dbmonitoring/
   `sqlserver.batch_sql_request.count`, `sqlserver.database.io.read_latency`,
   `sqlserver.database.io.write_latency`, `sqlserver.database.size`
 - **Spotlight-style (synthetic)**: `spotlight.health.severity` (per SQL + Windows row),
+  `spotlight.flow.edge_load` with `spotlight.flow_from` / `spotlight.flow_to` (optional OTel edges; Flow dashboard top panel uses `sqlserver.user.connection.count` by host for reliable ES|QL),
   `sqlserver.spotlight.*` (sessions, CPU, memory, processes, PLE, procedure cache,
   virtualization overhead, error-log rate, services)
 - Resource attributes: `cloud.provider`, `cloud.platform`, `sqlserver.build_version`,
@@ -122,7 +123,7 @@ dbmonitoring/
   `mongodb.document.operation.count`, `mongodb.network.io.receive/transmit`,
   `mongodb.replication.lag` (secondary only), `mongodb.database.size/collection.count`
 - **Storage**: TSDB (live timestamps only, ~2h window)
-- **Spotlight heat map**: `spotlight.health.severity` with `spotlight.grid_row` =
+- **Spotlight severity grid** (treemap in Kibana): `spotlight.health.severity` with `spotlight.grid_row` =
   `"{host} · MongoDB"`; attributes `mongo.deployment`, `cloud.provider`, `cloud.platform`
 
 ### Oracle (metrics)

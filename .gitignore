@@ -4,3 +4,8 @@ node_modules/
 .elastic-credentials
 build/
 slides/dist/
+
+# Local Cursor state; project rules under .cursor/rules/ are tracked
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**

@@ -1,17 +1,18 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
-import { Database, Zap, Shield, TrendingUp } from 'lucide-react';
+import { Database, Zap, Shield, TrendingUp, LayoutGrid } from 'lucide-react';
 import { CountUp } from '@/components/charts/CountUp';
 
 const stats = [
   { value: 5, suffix: ' DBs', label: 'Monitored', color: '#1ba9f5' },
+  { value: 8, suffix: '+', label: 'Kibana Dashboards', color: '#f59e0b' },
   { value: 100, suffix: '%', label: 'OpenTelemetry', color: '#a855f7' },
-  { value: 0, suffix: ' agents', label: 'Proprietary', color: '#00bfa5' },
-  { value: 6, suffix: ' rules', label: 'Alert Rules + AI RCA', color: '#f59e0b' },
+  { value: 6, suffix: ' rules', label: 'Alerts + AI RCA', color: '#00bfa5' },
 ];
 
 const badges = [
   { icon: Database, label: 'MySQL · PostgreSQL · SQL Server · MongoDB · Oracle' },
+  { icon: LayoutGrid, label: 'Spotlight-style heat map + SQL Server overview' },
   { icon: Zap, label: 'OpenTelemetry OTLP — no proprietary agents' },
   { icon: Shield, label: 'Serverless · Pay only for what you use' },
   { icon: TrendingUp, label: 'AI-powered Root Cause Analysis built in' },
@@ -45,7 +46,7 @@ export function Slide01Title() {
           </motion.p>
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
-            className="grid grid-cols-2 gap-2.5">
+            className="grid grid-cols-2 xl:grid-cols-3 gap-2.5">
             {badges.map(b => (
               <div key={b.label} className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-white/12 bg-white/6 text-white/80 text-xs">
                 <b.icon size={14} className="text-[#1ba9f5] flex-shrink-0" />{b.label}

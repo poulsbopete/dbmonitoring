@@ -154,13 +154,14 @@ for custom panels.
 Two dashboards approximate **Quest Spotlight** for customers evaluating “single-pane
 SQL Server + host health” tools.
 
-**Dashboard:** `Spotlight — Health Heat Map (SQL Server, Windows, MongoDB)`
+**Dashboard:** `Spotlight — Severity grid (SQL Server, Windows, MongoDB)`
 
-1. **Health heat map** — Time (columns) × **grid row** (rows: each SQL instance, matching
-   **Windows** host row, and each **MongoDB** node). Cell colour maps to
-   `spotlight.health.severity`: **0** informational (blue), **1** healthy (green),
-   **2** warning (yellow), **3** critical (red). Adjust the Lens colour ramp if needed
-   so higher numbers read as “hotter.”
+1. **Severity grid (treemap)** — Same ES|QL a Lens **heat map** would use: **time bucket** ×
+   **grid row** (SQL instance, **Windows** host row, **MongoDB** node), metric = max
+   `spotlight.health.severity` (**0**–**3**). **POST /api/dashboards** on Serverless does not
+   accept inline Lens **heat map**; the treemap is a supported 2D partition. **Edit in Lens**
+   and switch to **Heat map** if your Kibana build supports ES|QL heat maps in the UI. Tune
+   colours so higher severity reads hotter.
 2. **Severity lines** — Same data as a multi-line trend for narration.
 3. **Ranking + detail table** — Average / peak severity by row, with `cloud.platform`
    (on-premises, **Azure** VM, **Azure SQL Managed Instance**, **MongoDB Atlas** on AWS).

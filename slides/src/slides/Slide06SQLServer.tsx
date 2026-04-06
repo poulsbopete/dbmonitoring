@@ -25,6 +25,7 @@ const capabilities = [
   'SQL compilations vs re-compilations (plan cache efficiency)',
   'Lock waits: table, row, page and key broken out by type',
   'Transactions per second with commit/rollback breakdown',
+  'Spotlight-style dashboards: health heat map + SQL overview (sessions, CPU, PLE, processes)',
   'Pre-wired alert: High Transaction Rate → AI RCA Workflow',
 ];
 

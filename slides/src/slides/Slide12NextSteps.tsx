@@ -8,7 +8,7 @@ const milestones = [
   {
     week: 'Week 1', icon: Layers, color: '#1ba9f5',
     title: 'Baseline + Onboard',
-    items: ['Connect your 4 DB types', 'Verify OTLP pipeline', 'Review 4 dashboards'],
+    items: ['Connect your 5 DB types', 'Verify OTLP pipeline', 'Review dashboards incl. Spotlight views'],
   },
   {
     week: 'Week 2', icon: ShieldCheck, color: '#a855f7',
@@ -28,13 +28,13 @@ const milestones = [
 ];
 
 const outcomes = [
-  { label: 'Data ingested', value: 4, suffix: ' streams', color: '#1ba9f5' },
-  { label: 'Dashboards', value: 4, suffix: '', color: '#a855f7' },
-  { label: 'Alert rules', value: 5, suffix: '', color: '#00bfa5' },
+  { label: 'Data ingested', value: 5, suffix: '+ streams', color: '#1ba9f5' },
+  { label: 'Dashboards', value: 8, suffix: '', color: '#a855f7' },
+  { label: 'Alert rules', value: 6, suffix: '', color: '#00bfa5' },
   { label: 'Time to value', value: 30, suffix: ' min', color: '#f59e0b' },
 ];
 
-export function Slide11NextSteps() {
+export function Slide12NextSteps() {
   return (
     <SlideLayout shadowColor="rgba(0, 191, 165, 0.4)" shadowSpeed={42} shadowScale={72}>
       <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">
@@ -100,7 +100,7 @@ export function Slide11NextSteps() {
                 <Donut value={100} color="#1ba9f5" size={88} label="100%" sublabel="done" delay={0.6} thickness={10} />
               </div>
               <div className="flex flex-col gap-1">
-                {['Data flowing ✓', 'Dashboards live ✓', 'Alerts active ✓', 'AI RCA wired ✓'].map(t => (
+                {['Data flowing ✓', '8 dashboards live ✓', 'Spotlight views ✓', '6 alerts + AI RCA ✓'].map(t => (
                   <div key={t} className="text-white/70 text-[10px] flex items-center gap-1.5">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#1ba9f5]" />{t}
                   </div>

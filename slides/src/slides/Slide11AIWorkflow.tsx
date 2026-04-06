@@ -6,7 +6,7 @@ const steps = [
   {
     icon: Bell, num: '01', color: '#ef4444',
     title: 'Alert Fires',
-    items: ['5 pre-wired rules', 'MySQL · PG · SQL · Mongo', 'ES|QL threshold check', 'Debounced, noise-free'],
+    items: ['6 pre-wired rules', 'MySQL · PG · SQL · Mongo · Oracle', 'ES|QL threshold check', 'Debounced, noise-free'],
     badge: 'Kibana Alerting',
   },
   {
@@ -48,7 +48,7 @@ function Connector({ color, delay }: { color: string; delay: number }) {
   );
 }
 
-export function Slide10AIWorkflow() {
+export function Slide11AIWorkflow() {
   return (
     <SlideLayout shadowColor="rgba(168, 85, 247, 0.5)" shadowSpeed={55} shadowScale={80}>
       <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">

@@ -82,7 +82,7 @@ export function Slide03Architecture() {
               <div className="flex-1 p-4 rounded-xl border border-[#1ba9f5]/25 bg-[#1ba9f5]/6 flex flex-col gap-2">
                 <div className="flex items-center gap-2 pb-2 border-b border-white/10">
                   <BarChart3 size={15} className="text-[#1ba9f5]" />
-                  <span className="text-white font-semibold text-sm">4 Kibana Dashboards</span>
+                  <span className="text-white font-semibold text-sm">8 Kibana dashboards</span>
                 </div>
                 {[
                   { stream: 'logs-mysql.*', color: '#f59e0b', label: 'Slow queries + errors' },
@@ -99,6 +99,13 @@ export function Slide03Architecture() {
                     </div>
                   </div>
                 ))}
+                <div className="flex items-center gap-2 pt-1 border-t border-white/8">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0 bg-[#f59e0b]" />
+                  <div className="min-w-0">
+                    <div className="text-white/70 font-mono text-[10px] truncate">Spotlight — heat map + SQL overview</div>
+                    <div className="text-white/45 text-[9px]">SQL · Windows · Mongo · Azure / Atlas</div>
+                  </div>
+                </div>
               </div>
               <div className="p-3 rounded-xl border border-[#a855f7]/25 bg-[#a855f7]/6 flex items-center gap-2">
                 <Bot size={14} className="text-[#a855f7]" />
@@ -108,7 +115,7 @@ export function Slide03Architecture() {
                 </div>
               </div>
               <div className="flex gap-1.5">
-                {['5 Alert Rules', 'Cases', 'SLOs'].map(t => (
+                {['6 Alert Rules', 'Cases', 'SLOs'].map(t => (
                   <div key={t} className="flex-1 text-center text-[9px] text-white/55 border border-white/12 rounded-lg py-1.5">{t}</div>
                 ))}
               </div>

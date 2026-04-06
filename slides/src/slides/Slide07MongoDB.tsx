@@ -18,6 +18,7 @@ const capabilities = [
   'Memory usage in GB (resident + virtual)',
   'Network bytes in/out — egress cost awareness',
   'Connection count vs max configured pool size',
+  'Spotlight heat map: on-prem + Atlas nodes with cloud.provider labels',
   'Pre-wired alert: High Op Rate → AI RCA Workflow',
 ];
 

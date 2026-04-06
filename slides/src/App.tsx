@@ -9,9 +9,10 @@ import { Slide05Postgres } from './slides/Slide05Postgres';
 import { Slide06SQLServer } from './slides/Slide06SQLServer';
 import { Slide07MongoDB } from './slides/Slide07MongoDB';
 import { Slide08Oracle } from './slides/Slide08Oracle';
-import { Slide09Comparison } from './slides/Slide09Comparison';
-import { Slide10AIWorkflow } from './slides/Slide10AIWorkflow';
-import { Slide11NextSteps } from './slides/Slide11NextSteps';
+import { Slide09Spotlight } from './slides/Slide09Spotlight';
+import { Slide10Comparison } from './slides/Slide10Comparison';
+import { Slide11AIWorkflow } from './slides/Slide11AIWorkflow';
+import { Slide12NextSteps } from './slides/Slide12NextSteps';
 
 const SLIDES = [
   Slide01Title,
@@ -22,9 +23,10 @@ const SLIDES = [
   Slide06SQLServer,
   Slide07MongoDB,
   Slide08Oracle,
-  Slide09Comparison,
-  Slide10AIWorkflow,
-  Slide11NextSteps,
+  Slide09Spotlight,
+  Slide10Comparison,
+  Slide11AIWorkflow,
+  Slide12NextSteps,
 ];
 
 export default function App() {

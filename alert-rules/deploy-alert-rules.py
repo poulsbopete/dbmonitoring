@@ -5,11 +5,12 @@ Creates/updates database monitoring alert rules in Kibana.
 
 Usage:
   python3 alert-rules/deploy-alert-rules.py
+  python3 alert-rules/deploy-alert-rules.py cleanup-workflows   # fix/remove broken "Untitled workflow" rows
 
 Env:
-  KIBANA_URL, ES_API_KEY  (or ES_USERNAME + ES_PASSWORD)
+  KIBANA_URL, ES_API_KEY or KIBANA_API_KEY  (or ES_USERNAME + ES_PASSWORD)
 """
-import json, os, sys, urllib.request, urllib.error, base64
+import json, os, sys, urllib.parse, urllib.request, urllib.error, base64
 
 KIBANA_URL = os.environ.get("KIBANA_URL", "").rstrip("/")
 API_KEY    = os.environ.get("ES_API_KEY", "") or os.environ.get("KIBANA_API_KEY", "")
@@ -30,6 +31,137 @@ HEADERS = {
 }
 
 WORKFLOW_ID = os.environ.get("WORKFLOW_ID", "")
+
+
+def _http_json(method, path, body=None):
+    data = None if body is None else json.dumps(body).encode()
+    req = urllib.request.Request(
+        f"{KIBANA_URL}{path}", data=data, headers=HEADERS, method=method)
+    try:
+        with urllib.request.urlopen(req) as r:
+            raw = r.read()
+            if not raw:
+                return None, r.status
+            return json.loads(raw), r.status
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode() if e.fp else ""
+        return {"_http_error": e.code, "_body": err_body}, e.code
+
+
+def _workflow_items(payload):
+    if payload is None:
+        return []
+    if isinstance(payload, list):
+        return payload
+    if not isinstance(payload, dict):
+        return []
+    for key in ("data", "workflows", "items", "results", "saved_objects"):
+        block = payload.get(key)
+        if isinstance(block, list):
+            return block
+    return []
+
+
+def list_workflows():
+    """Return workflow summary objects from Kibana (shape varies by version)."""
+    # Serverless returns { page, size, total, results: [...] } — no perPage query param.
+    for path in ("/api/workflows",):
+        payload, status = _http_json("GET", path)
+        if status == 404:
+            continue
+        if isinstance(payload, dict) and payload.get("_http_error"):
+            continue
+        items = _workflow_items(payload)
+        if items or status == 200:
+            return items
+    return []
+
+
+def delete_workflow(workflow_id):
+    """DELETE /api/workflows/:id — removes a workflow definition (often 404 on Serverless)."""
+    qid = urllib.parse.quote(workflow_id, safe="")
+    req = urllib.request.Request(
+        f"{KIBANA_URL}/api/workflows/{qid}", headers=HEADERS, method="DELETE")
+    try:
+        with urllib.request.urlopen(req) as r:
+            return 200 <= r.status < 300
+    except urllib.error.HTTPError:
+        return False
+
+
+def _minimal_valid_workflow_yaml(title: str) -> str:
+    """Valid minimal workflow (Serverless rejects log-only steps; needs kibana.request)."""
+    safe = title.replace('"', "'")
+    return (
+        'version: "1"\n'
+        f"name: {safe}\n"
+        "description: >\n"
+        "  Repaired after an invalid import (was Untitled / valid=false). "
+        "Safe to delete from the Workflows UI if you do not need it.\n"
+        "enabled: false\n"
+        "triggers:\n"
+        "  - type: manual\n"
+        "steps:\n"
+        "  - name: noop\n"
+        "    type: kibana.request\n"
+        "    with:\n"
+        "      method: GET\n"
+        "      path: /api/status\n"
+    )
+
+
+def repair_workflow(workflow_id, title: str) -> bool:
+    """In-place fix: POST /api/workflows with { id, yaml }. Required when DELETE is not available."""
+    payload, status = _http_json(
+        "POST",
+        "/api/workflows",
+        {"workflows": [{"id": workflow_id, "yaml": _minimal_valid_workflow_yaml(title)}]},
+    )
+    if not isinstance(payload, dict) or payload.get("_http_error"):
+        return False
+    created = payload.get("created") or []
+    if not created:
+        return False
+    return created[0].get("valid") is True
+
+
+def cleanup_untitled_workflows():
+    """
+    Fix or remove workflows stuck as 'Untitled workflow' (no triggers / invalid YAML).
+
+    On Elastic Serverless, per-id DELETE often returns 404 for API keys; the same API
+    supports updating by POSTing { id, yaml } with a valid definition.
+    """
+    items = list_workflows()
+    if not items:
+        print("  (No workflows listed from GET /api/workflows — skip cleanup, or list API unavailable)")
+        return 0
+    deleted = 0
+    repaired = 0
+    for w in items:
+        if not isinstance(w, dict):
+            continue
+        name = (w.get("name") or "").strip().lower()
+        if name != "untitled workflow":
+            continue
+        wid = w.get("id")
+        if not wid:
+            continue
+        suffix = wid.split("-")[-1][:8] if "-" in wid else wid[-8:]
+        repair_title = f"Repaired orphan workflow ({suffix})"
+        if delete_workflow(wid):
+            print(f"  ✓ Removed broken workflow {wid}")
+            deleted += 1
+        elif repair_workflow(wid, repair_title):
+            print(f"  ✓ Repaired broken workflow {wid} → {repair_title!r}")
+            repaired += 1
+        else:
+            print(f"  ✗ Could not delete or repair {wid}")
+    if deleted or repaired:
+        print(f"  Cleanup: removed {deleted}, repaired {repaired} untitled workflow(s).")
+    else:
+        print("  Cleanup: no 'Untitled workflow' entries found.")
+    return deleted + repaired
 
 
 def upsert_rule(rule_id, body):
@@ -235,19 +367,36 @@ def deploy_workflow(filename, label):
     yaml_content = open(yaml_path).read()
     req = urllib.request.Request(
         f"{KIBANA_URL}/api/workflows",
-        data=json.dumps({"yaml": yaml_content}).encode(),
+        data=json.dumps({"workflows": [{"yaml": yaml_content}]}).encode(),
         headers=HEADERS, method="POST")
     try:
         with urllib.request.urlopen(req) as r:
             result = json.loads(r.read())
-            print(f"  ✓ {label}: {result['name']} (id={result['id']})")
-            return result["id"]
+            failed = result.get("failed") or []
+            if failed:
+                print(f"  WARN: {label}: API reported failure: {failed[0]!s}"[:300])
+                return None
+            created = result.get("created") or []
+            if not created:
+                print(f"  WARN: {label}: empty created[] response")
+                return None
+            wf = created[0]
+            print(f"  ✓ {label}: {wf.get('name', '?')} (id={wf['id']})")
+            return wf["id"]
     except urllib.error.HTTPError as e:
         print(f"  WARN: {label} deploy failed HTTP {e.code}: {e.read().decode()[:200]}")
         return None
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] in ("cleanup-workflows", "cleanup"):
+        print("\nCleaning up broken workflows (Untitled only)...")
+        cleanup_untitled_workflows()
+        sys.exit(0)
+
+    print("\nCleaning up broken workflows (Untitled only)...")
+    cleanup_untitled_workflows()
+
     print("\nDeploying Workflows...")
     wf_id = deploy_workflow("rca-workflow.yaml", "RCA Workflow")
     if wf_id:

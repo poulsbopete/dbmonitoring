@@ -6,8 +6,8 @@ MySQL, PostgreSQL, MS SQL (SQL Server), MongoDB, and Oracle.
 
 SQL Server includes on-prem and **Azure** (VM + Managed Instance) labels; MongoDB includes
 on-prem replica set and an **Atlas**-style node. **Spotlight-style** metrics
-(`spotlight.health.severity`, `sqlserver.spotlight.*`) power Quest Spotlight–like Kibana
-dashboards (see `assets/spotlight-otel-gaps.md`).
+(`spotlight.health.severity`, `sqlserver.spotlight.*`, `spotlight.flow.edge_load` + `spotlight.flow_from` / `spotlight.flow_to` attributes)
+power Quest Spotlight–like Kibana dashboards (heat maps, flow-style diagrams, etc.; see `assets/spotlight-otel-gaps.md`).
 
 Sends:
   - Historical data: last N days at 5-min intervals (burst on startup)
@@ -470,6 +470,28 @@ def send_mssql(endpoint: str, auth: str, dt: datetime, load: float, _state: dict
         ]
         metrics.extend(health_sql)
         metrics.extend(spotlight_sql)
+
+        # ── Spotlight-style flow edges (synthetic “Sankey-ish” relative load between tiers) ──
+        read_path = math.log1p(float(s["page_reads"])) * 45.0
+        write_path = math.log1p(float(s["page_writes"])) * 38.0
+        spotlight_flow = []
+        for src, tgt, wv in (
+            ("Client tier", "SQL user sessions", float(active_sessions)),
+            ("SQL user sessions", "Active transactions", float(active_transactions)),
+            ("Windows host", "SQL Server engine", cpu_pct * 75.0),
+            ("SQL Server engine", "User databases", float(len(inst["databases"]) * 700.0 + load * 600.0)),
+            ("Server memory", "Buffer pool", buf_bytes / 1e7),
+            ("Buffer pool", "Storage read path", read_path),
+            ("Buffer pool", "Storage write path", write_path),
+            ("SQL engine", "Background / services", float(svc_running * 100.0)),
+        ):
+            spotlight_flow.append(_ms_gauge(
+                "spotlight.flow.edge_load",
+                max(1.0, float(wv)),
+                # One dot in key (like spotlight.grid_row); multi-dot keys may not map to ES|QL columns.
+                [attr("spotlight.flow_from", src), attr("spotlight.flow_to", tgt)],
+            ))
+        metrics.extend(spotlight_flow)
 
         # Per-database metrics
         for db in inst["databases"]:
