@@ -4,8 +4,8 @@ id: a8za8uie5rvp
 type: challenge
 title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
 teaser: Explore live performance data across MySQL, PostgreSQL, SQL Server, MongoDB,
-  IBM Db2, and Oracle in Elastic Observability Serverless. No proprietary agents. OpenTelemetry
-  end to end.
+  IBM Db2, and Oracle in Elastic Observability Serverless. No proprietary agents.
+  OpenTelemetry end to end.
 notes:
 - type: text
   contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n
@@ -230,7 +230,7 @@ chains, ERRORLOG text, full Windows OS counters, PaaS SQL boundaries).
 8. **Deadlocks & sort overflows** — monotonic counters from the synthetic workload.
 9. **Log utilization over time** — split by `host.name` for prod vs DR storytelling.
 
-> **Talking point vs Datadog / Dynatrace:**  
+> **Talking point vs Datadog / Dynatrace:**
 > Db2 monitoring is often a **paid add-on** or a separate module. In Elastic, LUW-style metrics
 > flow through the same **OpenTelemetry → managed OTLP** path as the other engines, with ES|QL dashboards on
 > `metrics-db2receiver.otel.otel-default`.

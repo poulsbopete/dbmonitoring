@@ -1,9 +1,10 @@
 slug: serverless-db-monitoring
 id: kz0navpyrwlk
-title: Elastic Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
+title: Elastic Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2
+  · Oracle
 teaser: See Elastic's database monitoring capabilities for MySQL, PostgreSQL, SQL
-  Server, MongoDB, IBM Db2, and Oracle side-by-side vs Datadog DBM and Dynatrace. OpenTelemetry
-  end to end, no proprietary agents.
+  Server, MongoDB, IBM Db2, and Oracle side-by-side vs Datadog DBM and Dynatrace.
+  OpenTelemetry end to end, no proprietary agents.
 description: |
   **Goal:** Demonstrate Elastic Observability Serverless as a superior alternative to
   **Datadog Database Monitoring (DBM)** and **Dynatrace** for customers running
@@ -29,6 +30,7 @@ icon: https://cdn.instruqt.com/assets/templates/kubernetes.png
 tags:
 - postgresql
 - mysql
+- db2
 - elastic
 - database-monitoring
 - opentelemetry
@@ -37,7 +39,6 @@ tags:
 - mongodb
 - observability
 - oracle
-- db2
 owner: elastic
 developers:
 - peter.simkins@elastic.co
@@ -56,5 +57,5 @@ lab_config:
   hideStopButton: false
   default_layout: AssignmentRight
   default_layout_sidebar_size: 35
-checksum: "15273949460042235841"
+checksum: "4856806958527654405"
 enhanced_loading: false
