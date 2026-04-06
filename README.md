@@ -1,8 +1,10 @@
-# Elastic Database Monitoring — POC Track
+# Elastic Database Monitoring
 
-Instruqt workshop demonstrating **Elastic Observability Serverless** as a drop-in
-replacement for **Datadog Database Monitoring (DBM)** and **Dynatrace** across five
+**Instruqt** demo: **Elastic Observability Serverless** with synthetic OpenTelemetry data,
+positioned against **Datadog Database Monitoring (DBM)** and **Dynatrace** across five
 database platforms.
+
+**Try the hands-on sandbox:** [Instruqt invite — Database monitoring](https://play.instruqt.com/elastic/invite/m33cztpvt73h)
 
 ---
 
@@ -235,6 +237,7 @@ The track slug is `serverless-db-monitoring` under the `elastic` organization.
 
 | Resource | URL |
 |---|---|
-| Instruqt Track | https://play.instruqt.com/elastic/tracks/serverless-db-monitoring |
+| **Instruqt invite (play)** | https://play.instruqt.com/elastic/invite/m33cztpvt73h |
+| Instruqt track (manage) | https://play.instruqt.com/elastic/tracks/serverless-db-monitoring |
 | Slide Deck | https://poulsbopete.github.io/dbmonitoring/ |
 | GitHub | https://github.com/poulsbopete/dbmonitoring |

@@ -26,7 +26,7 @@ export function Slide01Title() {
         <div className="flex flex-col justify-center gap-5 flex-1 min-w-0">
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#1ba9f5]/40 bg-[#1ba9f5]/10 text-[#1ba9f5] text-xs font-semibold tracking-widest uppercase w-fit">
-            <Database size={12} /> Elastic Observability · Database Monitoring POC
+            <Database size={12} /> Elastic Observability · Live database monitoring demo
           </motion.div>
 
           <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -58,7 +58,7 @@ export function Slide01Title() {
             className="flex items-center gap-5 text-white/40 text-xs">
             <span>vs Datadog DBM</span><span className="w-1 h-1 rounded-full bg-white/20" />
             <span>vs Dynatrace</span><span className="w-1 h-1 rounded-full bg-white/20" />
-            <span>Proof of Concept · 2026</span>
+            <span>Elastic · 2026</span>
           </motion.div>
         </div>
 
