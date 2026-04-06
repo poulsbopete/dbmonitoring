@@ -233,13 +233,25 @@ python3 alert-rules/deploy-alert-rules.py
 
 ## Publishing the Instruqt Track
 
+Sandboxes **clone this Git repo** at runtime, but the Instruqt **track page** (title, description, challenges) only updates when you **push the track definition** to Instruqt. After workshop-related changes, do **both**:
+
+1. **`git push`** — so new plays get the latest `import_dashboards.py`, generator, workflows, etc.
+2. **`instruqt track push`** — so the Instruqt UI and challenge metadata match the repo.
+
 ```bash
 # One-time login
 instruqt auth login
 
-# Push track (no --force to preserve sandbox config)
+# From repo root: push current branch + Instruqt track (after committing)
+./serverless-db-monitoring/publish-track.sh
+```
+
+Or manually:
+
+```bash
+git push origin main   # or your branch
 cd serverless-db-monitoring
-instruqt track push
+instruqt track push    # no --force unless you intend to overwrite remote track state
 ```
 
 The track slug is `serverless-db-monitoring` under the `elastic` organization.

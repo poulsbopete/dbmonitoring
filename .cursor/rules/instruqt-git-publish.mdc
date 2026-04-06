@@ -1,0 +1,20 @@
+---
+description: After Instruqt/workshop changes, push Git and run instruqt track push
+alwaysApply: true
+---
+
+# Git + Instruqt publish (required)
+
+This repo powers the **Instruqt** track `serverless-db-monitoring`. Two systems must stay in sync:
+
+1. **Git remote** (`origin`) — the sandbox **clones** this repo at runtime (`setup-es3-api`). If you only push metadata to Instruqt, labs still run old Python/dashboard code.
+2. **Instruqt** — the track **title, teaser, description, and challenge YAML** live on Instruqt until you run **`instruqt track push`**. GitHub does not update that UI.
+
+When you finish changes that touch the workshop (including `serverless-db-monitoring/`, `tools/db_otel_generator.py`, `scripts/import_dashboards.py`, `alert-rules/`, `workflows/`, or demo-facing `slides/` / `README.md` counts), **before closing the task**:
+
+1. Commit if needed, then **`git push`** to the branch sandboxes use (default **`main`**).
+2. From the repo: **`cd serverless-db-monitoring && instruqt track push`** (requires `instruqt auth login` once).
+
+Optional one-shot: `./serverless-db-monitoring/publish-track.sh` from the repo root (pushes current branch, then Instruqt).
+
+Do **not** treat “pushed to GitHub” as sufficient for Instruqt marketing copy or challenge metadata.
