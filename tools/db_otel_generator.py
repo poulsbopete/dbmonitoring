@@ -4,6 +4,11 @@ db_otel_generator.py
 Generates synthetic database monitoring telemetry via OTLP HTTP for
 MySQL, PostgreSQL, MS SQL (SQL Server), MongoDB, and Oracle.
 
+SQL Server includes on-prem and **Azure** (VM + Managed Instance) labels; MongoDB includes
+on-prem replica set and an **Atlas**-style node. **Spotlight-style** metrics
+(`spotlight.health.severity`, `sqlserver.spotlight.*`) power Quest Spotlight–like Kibana
+dashboards (see `assets/spotlight-otel-gaps.md`).
+
 Sends:
   - Historical data: last N days at 5-min intervals (burst on startup)
   - Live data: every 60 s in background (--live flag)
@@ -319,9 +324,21 @@ def send_postgres(endpoint: str, auth: str, dt: datetime, load: float,
 
 MSSQL_INSTANCES = [
     {"host": "mssql-prod-01", "instance": "MSSQLSERVER", "service": "sqlserver-production",
-     "databases": ["SalesDB", "InventoryDB", "CustomerDB", "ReportingDB"]},
+     "databases": ["SalesDB", "InventoryDB", "CustomerDB", "ReportingDB"],
+     "cloud.provider": "on_premises", "cloud.platform": "physical_vm",
+     "sqlserver.build_version": "16.0.1000", "host.is_virtual": False},
     {"host": "mssql-prod-02", "instance": "MSSQLSERVER", "service": "sqlserver-secondary",
-     "databases": ["SalesDB", "CustomerDB"]},
+     "databases": ["SalesDB", "CustomerDB"],
+     "cloud.provider": "on_premises", "cloud.platform": "physical_vm",
+     "sqlserver.build_version": "15.0.2000", "host.is_virtual": True},
+    {"host": "mssql-azure-vm-01", "instance": "MSSQLSERVER", "service": "sqlserver-azure-vm",
+     "databases": ["RetailDB", "WarehouseDB"],
+     "cloud.provider": "azure", "cloud.platform": "azure_vm",
+     "sqlserver.build_version": "16.0.1000", "host.is_virtual": True},
+    {"host": "mssql-azure-mi-01", "instance": "MSSQLSERVER", "service": "sqlserver-azure-mi",
+     "databases": ["FinanceMI"],
+     "cloud.provider": "azure", "cloud.platform": "azure_sql_managed_instance",
+     "sqlserver.build_version": "16.0.1000", "host.is_virtual": True},
 ]
 
 
@@ -374,6 +391,70 @@ def send_mssql(endpoint: str, auth: str, dt: datetime, load: float, _state: dict
         no_attr: list = []
         inst_attr = [attr("sqlserver.instance.name", inst["instance"])]
 
+        # ── Spotlight-style synthetic signals (not all map 1:1 to OTel sqlserverreceiver) ──
+        max_sessions = 32_767
+        active_sessions = max(1, int(user_connections * random.uniform(0.65, 0.95)))
+        session_response_ms = max(0.5, lock_wait_time * 0.3 + random.uniform(0, 8) + load * 12)
+        health_rating = max(0.0, min(100.0, buf_cache_hit * 0.85 + (100 - min(lock_wait_time, 100) * 0.1)
+                              + random.uniform(-5, 5)))
+        cpu_pct = max(5.0, min(98.0, load * 55 + random.uniform(0, 25)))
+        mem_total = 128 * 1024**3  # 128 GB synthetic
+        buf_bytes = int(mem_total * random.uniform(0.35, 0.55))
+        proc_cache_bytes = int(mem_total * random.uniform(0.08, 0.18))
+        ple_sec = int(300 + buf_cache_hit * 40 + random.gauss(0, 200))  # page life expectancy
+        proc_total = int(180 + load * 400 + random.gauss(0, 30))
+        proc_sys = int(proc_total * random.uniform(0.08, 0.18))
+        proc_blocked = int(load * 8 + (3 if lock_wait_time > 50 else 0))
+        proc_user = max(1, proc_total - proc_sys - proc_blocked)
+        virt_overhead = random.uniform(2, 12) if inst.get("host.is_virtual") else random.uniform(0, 3)
+        errlog_rate = random.uniform(0, 0.8) + (1.5 if load > 0.75 else 0)
+        svc_running = random.randint(18, 26)
+
+        def _sev(load_f: float) -> float:
+            """0=informational, 1=healthy, 2=warning, 3=critical (heatmap color scale)."""
+            r = random.random()
+            if load_f > 0.72 and r < 0.12:
+                return 3.0
+            if load_f > 0.45 and r < 0.18:
+                return 2.0
+            if r < 0.06:
+                return 0.0
+            return 1.0
+
+        sev_sql = _sev(load)
+        sev_win = _sev(load * 0.9 + 0.05)
+
+        grid_sql = f"{inst['host']} · SQL Server"
+        grid_win = f"{inst['host']} · Windows"
+        health_sql = [
+            _ms_gauge("spotlight.health.severity", sev_sql,
+                      [attr("spotlight.grid_row", grid_sql), attr("spotlight.entity_type", "sqlserver")]),
+            _ms_gauge("spotlight.health.severity", sev_win,
+                      [attr("spotlight.grid_row", grid_win), attr("spotlight.entity_type", "windows")]),
+        ]
+
+        spotlight_sql = [
+            _ms_gauge("sqlserver.spotlight.session.response_time_ms", session_response_ms, no_attr, "ms"),
+            _ms_gauge("sqlserver.spotlight.session.active.count", float(active_sessions), no_attr),
+            _ms_gauge("sqlserver.spotlight.session.max.count", float(max_sessions), no_attr),
+            _ms_gauge("sqlserver.spotlight.session.active_pct",
+                      100.0 * active_sessions / max_sessions, no_attr, "%"),
+            _ms_gauge("sqlserver.spotlight.computers.count", 1.0, no_attr),
+            _ms_gauge("sqlserver.spotlight.performance_health.rating", health_rating, no_attr),
+            _ms_gauge("sqlserver.spotlight.cpu.usage", cpu_pct, no_attr, "%"),
+            _ms_gauge("sqlserver.spotlight.memory.server.total.bytes", float(mem_total), no_attr, "By"),
+            _ms_gauge("sqlserver.spotlight.memory.buffer_cache.bytes", float(buf_bytes), no_attr, "By"),
+            _ms_gauge("sqlserver.spotlight.memory.page_life_expectancy.seconds", float(ple_sec), no_attr, "s"),
+            _ms_gauge("sqlserver.spotlight.memory.procedure_cache.bytes", float(proc_cache_bytes), no_attr, "By"),
+            _ms_gauge("sqlserver.spotlight.processes.total", float(proc_total), no_attr),
+            _ms_gauge("sqlserver.spotlight.processes.system", float(proc_sys), no_attr),
+            _ms_gauge("sqlserver.spotlight.processes.user", float(proc_user), no_attr),
+            _ms_gauge("sqlserver.spotlight.processes.blocked", float(proc_blocked), no_attr),
+            _ms_gauge("sqlserver.spotlight.virtualization.overhead_pct", virt_overhead, no_attr, "%"),
+            _ms_gauge("sqlserver.spotlight.background.errorlog.events_per_min", errlog_rate, no_attr, "1/min"),
+            _ms_gauge("sqlserver.spotlight.services.running", float(svc_running), no_attr),
+        ]
+
         metrics = [
             _ms_gauge("sqlserver.user.connection.count", user_connections, no_attr),
             _ms_gauge("sqlserver.page.buffer_cache.hit_ratio", buf_cache_hit, no_attr, "%"),
@@ -387,6 +468,8 @@ def send_mssql(endpoint: str, auth: str, dt: datetime, load: float, _state: dict
             _ms_sum("sqlserver.transaction.count", s["transactions"], no_attr),
             _ms_sum("sqlserver.deadlock.count", s["deadlocks"], no_attr),
         ]
+        metrics.extend(health_sql)
+        metrics.extend(spotlight_sql)
 
         # Per-database metrics
         for db in inst["databases"]:
@@ -408,11 +491,17 @@ def send_mssql(endpoint: str, auth: str, dt: datetime, load: float, _state: dict
         res_attrs = [
             attr("service.name", inst["service"]),
             attr("host.name", inst["host"]),
+            attr("host.type", "windows"),
             attr("sqlserver.computer.name", inst["host"]),
             attr("deployment.environment", "production"),
             attr("data_stream.type", "metrics"),
             attr("data_stream.dataset", "sqlserverreceiver.otel"),
             attr("data_stream.namespace", "default"),
+            attr("cloud.provider", inst.get("cloud.provider", "on_premises")),
+            attr("cloud.platform", inst.get("cloud.platform", "unknown")),
+            attr("sqlserver.build_version", inst.get("sqlserver.build_version", "16.0.0")),
+            attr("host.is_virtual", bool(inst.get("host.is_virtual", False))),
+            attr("sqlserver.spotlight.custom_status", "OK" if health_rating >= 85 else "Review"),
         ]
         payload = {"resourceMetrics": [{
             "resource": {"attributes": res_attrs},
@@ -427,9 +516,14 @@ def send_mssql(endpoint: str, auth: str, dt: datetime, load: float, _state: dict
 
 MONGO_INSTANCES = [
     {"host": "mongo-rs0-primary", "role": "primary", "service": "mongodb-primary",
-     "rs": "rs0", "databases": ["product_catalog", "user_data", "sessions", "analytics"]},
+     "rs": "rs0", "databases": ["product_catalog", "user_data", "sessions", "analytics"],
+     "mongo.deployment": "on_prem", "cloud.provider": "on_premises", "cloud.platform": "bare_metal"},
     {"host": "mongo-rs0-secondary", "role": "secondary", "service": "mongodb-secondary",
-     "rs": "rs0", "databases": ["product_catalog", "user_data"]},
+     "rs": "rs0", "databases": ["product_catalog", "user_data"],
+     "mongo.deployment": "on_prem", "cloud.provider": "on_premises", "cloud.platform": "bare_metal"},
+    {"host": "mongo-atlas-shard0", "role": "primary", "service": "mongodb-atlas",
+     "rs": "atlas-cluster0", "databases": ["tenant_a", "tenant_b"],
+     "mongo.deployment": "atlas", "cloud.provider": "aws", "cloud.platform": "mongodb_atlas"},
 ]
 MONGO_OPS = ["insert", "query", "update", "delete", "getmore", "command"]
 
@@ -507,6 +601,21 @@ def send_mongodb(endpoint: str, auth: str, dt: datetime, load: float, _state: di
             metrics.append(_mdb_gauge("mongodb.replication.lag", s["replication_lag"],
                                       no_attr, "s"))
 
+        # Spotlight heat-map row (MongoDB on-prem + Atlas in one logical grid)
+        mr = random.random()
+        if load > 0.7 and mr < 0.15:
+            sev_m = 3.0
+        elif load > 0.45 and mr < 0.2:
+            sev_m = 2.0
+        elif mr < 0.07:
+            sev_m = 0.0
+        else:
+            sev_m = 1.0
+        grid_m = f"{inst['host']} · MongoDB"
+        metrics.append(_mdb_gauge(
+            "spotlight.health.severity", sev_m,
+            [attr("spotlight.grid_row", grid_m), attr("spotlight.entity_type", "mongodb")]))
+
         for db in inst["databases"]:
             db_attr = [attr("mongodb.database.name", db)]
             coll_count = random.randint(5, 50)
@@ -530,6 +639,9 @@ def send_mongodb(endpoint: str, auth: str, dt: datetime, load: float, _state: di
             attr("data_stream.type", "metrics"),
             attr("data_stream.dataset", "mongodbatlas.otel"),
             attr("data_stream.namespace", "default"),
+            attr("mongo.deployment", inst.get("mongo.deployment", "on_prem")),
+            attr("cloud.provider", inst.get("cloud.provider", "on_premises")),
+            attr("cloud.platform", inst.get("cloud.platform", "unknown")),
         ]
         payload = {"resourceMetrics": [{
             "resource": {"attributes": res_attrs},

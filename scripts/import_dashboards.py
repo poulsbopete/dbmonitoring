@@ -92,6 +92,55 @@ def esql_state_xy(esql_query, series_type, x_col, y_cols, breakdown_col=None, x_
     }
 
 
+def esql_state_heatmap(esql_query, x_col, y_col, metric_col, x_type="date", y_type="string"):
+    """Lens heat map: X = time bucket, Y = host row, color = numeric severity."""
+    lid = gid()
+    x_cid, y_cid, m_cid = gid(), gid(), gid()
+    columns = [
+        {"columnId": x_cid, "fieldName": x_col, "meta": {"type": x_type}},
+        {"columnId": y_cid, "fieldName": y_col, "meta": {"type": y_type}},
+        {"columnId": m_cid, "fieldName": metric_col, "meta": {"type": "number"}},
+    ]
+    return {
+        "visualization": {
+            "legend": {"isVisible": True, "position": "right", "shouldTruncate": True},
+            "shape": "heatmap",
+            "layers": [{
+                "layerId": lid,
+                "layerType": "data",
+                "xAccessor": x_cid,
+                "yAccessor": y_cid,
+                "metricAccessor": m_cid,
+            }],
+        },
+        "query": {"language": "kuery", "query": ""},
+        "filters": [],
+        "datasourceStates": {"textBased": {"layers": {lid: {
+            "query": {"esql": esql_query},
+            "columns": columns,
+        }}}},
+    }
+
+
+def esql_state_gauge(esql_query, col_name):
+    """Horizontal bullet-style gauge (CPU %, health rating)."""
+    lid, cid = gid(), gid()
+    return {
+        "visualization": {
+            "layerId": lid,
+            "layerType": "data",
+            "metricAccessor": cid,
+            "shape": "horizontalBullet",
+        },
+        "query": {"language": "kuery", "query": ""},
+        "filters": [],
+        "datasourceStates": {"textBased": {"layers": {lid: {
+            "query": {"esql": esql_query},
+            "columns": [{"columnId": cid, "fieldName": col_name, "meta": {"type": "number"}}],
+        }}}},
+    }
+
+
 def esql_state_table(esql_query, columns):
     """columns: list of (field_name, col_type) — col_type is 'string' or 'number'"""
     lid = gid()
@@ -363,6 +412,191 @@ def build_mongodb():
         ])
 
 
+# Indices union for Spotlight heat map (SQL Server + Windows + MongoDB rows)
+_SPOTLIGHT_FROM = (
+    "metrics-sqlserverreceiver.otel.otel-default, metrics-mongodbatlas.otel.otel-default"
+)
+
+
+def build_spotlight_heatmap():
+    """Quest Spotlight–style health grid: severity 0–3 over time × host row (SQL / Windows / Mongo)."""
+    print("  Creating Spotlight heat map Lens panels...")
+    q_hm = (
+        f"FROM {_SPOTLIGHT_FROM} "
+        "| WHERE `spotlight.grid_row` IS NOT NULL "
+        "| STATS `sev` = MAX(`spotlight.health.severity`) "
+        "BY bucket = BUCKET(@timestamp, 5 minute), `spotlight.grid_row`"
+    )
+    heat = create_lens("Spotlight Health Heat Map", "lnsHeatmap", esql_state_heatmap(
+        q_hm, "bucket", "spotlight.grid_row", "sev"))
+
+    q_line = (
+        f"FROM {_SPOTLIGHT_FROM} "
+        "| WHERE `spotlight.grid_row` IS NOT NULL "
+        "| STATS `Severity` = MAX(`spotlight.health.severity`) "
+        "BY bucket = BUCKET(@timestamp, 5 minute), `spotlight.grid_row`"
+    )
+    lines = create_lens("Severity trend by row", "lnsXY", esql_state_xy(
+        q_line, "line", "bucket", ["Severity"], "spotlight.grid_row"))
+
+    q_bar = (
+        f"FROM {_SPOTLIGHT_FROM} "
+        "| WHERE `spotlight.grid_row` IS NOT NULL "
+        "| STATS `Avg severity` = AVG(`spotlight.health.severity`) BY `spotlight.grid_row` "
+        "| SORT `Avg severity` DESC"
+    )
+    rank = create_lens("Average severity by row", "lnsXY", esql_state_xy(
+        q_bar, "bar_horizontal", "spotlight.grid_row", ["Avg severity"], x_type="string"))
+
+    q_tbl = (
+        f"FROM {_SPOTLIGHT_FROM} "
+        "| WHERE `spotlight.grid_row` IS NOT NULL "
+        "| STATS `Peak` = MAX(`spotlight.health.severity`), `Samples` = COUNT(*) "
+        "BY `spotlight.grid_row`, `cloud.platform`, `spotlight.entity_type` "
+        "| SORT `Peak` DESC"
+    )
+    tbl = create_lens("Health grid detail", "lnsTable", esql_state_table(
+        q_tbl,
+        [("spotlight.grid_row", "string"), ("cloud.platform", "string"),
+         ("spotlight.entity_type", "string"), ("Peak", "number"), ("Samples", "number")],
+    ))
+
+    return create_dashboard(
+        "Spotlight \u2014 Health Heat Map (SQL Server, Windows, MongoDB)",
+        "Color scale: 0 = informational (blue), 1 = healthy (green), 2 = warning (yellow), "
+        "3 = critical (red). Rows = SQL Server instance, Windows host, or MongoDB node; "
+        "includes on-premises and Azure/AWS (Atlas) synthetic labels.",
+        [
+            (heat,  (0,  0, 36, 14), "Health heat map (time \u00d7 host row)"),
+            (lines, (36, 0, 12, 14), "Severity lines"),
+            (rank,  (0,  14, 24, 12), "Avg severity ranking"),
+            (tbl,   (24, 14, 24, 12), "Peak severity + cloud platform"),
+        ],
+    )
+
+
+def build_spotlight_sql_overview():
+    """Mirrors Spotlight SQL Server Overview widgets using synthetic sqlserver.spotlight.* metrics."""
+    print("  Creating Spotlight SQL Server Overview Lens panels...")
+    IDX = "metrics-sqlserverreceiver.otel.otel-default"
+    H = 'host.name == "mssql-prod-01"'
+
+    def w(q):
+        return q.replace("__FILTER__", H)
+
+    sess_rt = create_lens("Session response time", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Response time (ms)` = AVG(`sqlserver.spotlight.session.response_time_ms`)"),
+        "Response time (ms)"))
+    sess_ct = create_lens("Session count", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Active sessions` = MAX(`sqlserver.spotlight.session.active.count`)"),
+        "Active sessions"))
+    sess_max = create_lens("Max sessions", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Max sessions` = MAX(`sqlserver.spotlight.session.max.count`)"),
+        "Max sessions"))
+    computers = create_lens("Computers", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Computers` = MAX(`sqlserver.spotlight.computers.count`)"),
+        "Computers"))
+    sess_bar = create_lens("Active sessions % of max", "lnsXY", esql_state_xy(
+        w(f"FROM {IDX} | WHERE __FILTER__ "
+          "| STATS pct = MAX(`sqlserver.spotlight.session.active_pct`) "
+          "| EVAL `Utilisation` = \"Active % of max\""),
+        "bar_horizontal", "Utilisation", ["pct"], x_type="string"))
+
+    perf_g = create_lens("Performance health rating", "lnsGauge", esql_state_gauge(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Health rating` = MAX(`sqlserver.spotlight.performance_health.rating`)"),
+        "Health rating"))
+
+    sys_tbl = create_lens("System & performance status", "lnsTable", esql_state_table(
+        w(f"FROM {IDX} | WHERE __FILTER__ "
+          "| STATS `Rating` = ROUND(MAX(`sqlserver.spotlight.performance_health.rating`), 1), "
+          "`SQL build` = MAX(`sqlserver.build_version`), "
+          "`Host` = MAX(`host.name`), "
+          "`Cloud` = MAX(`cloud.platform`), "
+          "`Custom status` = MAX(`sqlserver.spotlight.custom_status`), "
+          "`Virtual host` = MAX(`host.is_virtual`)"),
+        [("Rating", "number"), ("SQL build", "string"), ("Host", "string"),
+         ("Cloud", "string"), ("Custom status", "string"), ("Virtual host", "string")],
+    ))
+
+    pr_tot = create_lens("Processes total", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Total` = MAX(`sqlserver.spotlight.processes.total`)"),
+        "Total"))
+    pr_sys = create_lens("Processes system", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `System` = MAX(`sqlserver.spotlight.processes.system`)"),
+        "System"))
+    pr_usr = create_lens("Processes user", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `User` = MAX(`sqlserver.spotlight.processes.user`)"),
+        "User"))
+    pr_blk = create_lens("Blocked", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Blocked` = MAX(`sqlserver.spotlight.processes.blocked`)"),
+        "Blocked"))
+    batches = create_lens("Batch requests (counter)", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | EVAL _b = TO_DOUBLE(`sqlserver.batch_sql_request.count`) "
+          "| STATS `Batch requests` = MAX(_b)"),
+        "Batch requests"))
+
+    virt_g = create_lens("Virtualization overhead %", "lnsGauge", esql_state_gauge(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Overhead %` = AVG(`sqlserver.spotlight.virtualization.overhead_pct`)"),
+        "Overhead %"))
+
+    cpu_g = create_lens("CPU usage %", "lnsGauge", esql_state_gauge(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `CPU %` = MAX(`sqlserver.spotlight.cpu.usage`)"),
+        "CPU %"))
+
+    mem_total = create_lens("Server memory (bytes)", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Total bytes` = MAX(`sqlserver.spotlight.memory.server.total.bytes`)"),
+        "Total bytes"))
+    mem_buf = create_lens("Buffer cache (bytes)", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Buffer cache` = MAX(`sqlserver.spotlight.memory.buffer_cache.bytes`)"),
+        "Buffer cache"))
+    mem_ple = create_lens("Page life expectancy (s)", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `PLE (s)` = MAX(`sqlserver.spotlight.memory.page_life_expectancy.seconds`)"),
+        "PLE (s)"))
+    mem_proc = create_lens("Procedure cache (bytes)", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Proc cache` = MAX(`sqlserver.spotlight.memory.procedure_cache.bytes`)"),
+        "Proc cache"))
+
+    bg_err = create_lens("Error log events/min", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Error log/min` = AVG(`sqlserver.spotlight.background.errorlog.events_per_min`)"),
+        "Error log/min"))
+    bg_svc = create_lens("Services running", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Services` = MAX(`sqlserver.spotlight.services.running`)"),
+        "Services"))
+
+    buf_hit = create_lens("Buffer cache hit ratio (receiver)", "lnsMetric", esql_state_metric(
+        w(f"FROM {IDX} | WHERE __FILTER__ | STATS `Hit %` = AVG(`sqlserver.page.buffer_cache.hit_ratio`)"),
+        "Hit %"))
+
+    return create_dashboard(
+        "Spotlight \u2014 SQL Server Overview (synthetic)",
+        "Widgets aligned to Quest Spotlight SQL Server Overview using custom sqlserver.spotlight.* gauges; "
+        "filtered to host mssql-prod-01. See assets/spotlight-otel-gaps.md for OTel coverage notes.",
+        [
+            (sess_rt,   (0,   0, 8, 5), "Response time (ms)"),
+            (sess_ct,   (8,   0, 8, 5), "Active sessions"),
+            (sess_max,  (16,  0, 8, 5), "Max sessions"),
+            (computers, (24,  0, 8, 5), "Computers"),
+            (sess_bar,  (32,  0, 16, 5), "Active sessions %"),
+            (perf_g,    (0,   5, 12, 8), "Performance health (gauge)"),
+            (sys_tbl,   (12,  5, 36, 8), "System + health table"),
+            (pr_tot,    (0,   13, 8, 5), "Processes total"),
+            (pr_sys,    (8,   13, 8, 5), "System procs"),
+            (pr_usr,    (16,  13, 8, 5), "User procs"),
+            (pr_blk,    (24,  13, 8, 5), "Blocked"),
+            (batches,   (32,  13, 16, 5), "Batch requests (counter)"),
+            (virt_g,    (0,   18, 12, 8), "Virtualization overhead"),
+            (cpu_g,     (12,  18, 12, 8), "CPU usage"),
+            (buf_hit,   (24,  18, 24, 8), "Buffer cache hit %"),
+            (mem_total, (0,   26, 12, 5), "Memory total"),
+            (mem_buf,   (12,  26, 12, 5), "Buffer cache size"),
+            (mem_ple,   (24,  26, 12, 5), "Page life expectancy"),
+            (mem_proc,  (36,  26, 12, 5), "Procedure cache"),
+            (bg_err,    (0,   31, 12, 5), "Error log rate"),
+            (bg_svc,    (12,  31, 12, 5), "SQL services running"),
+        ],
+    )
+
+
 def build_oracle():
     print("  Creating Oracle Lens panels...")
     IDX = "metrics-oracledbreceiver.otel.otel-default"
@@ -427,6 +661,8 @@ if __name__ == "__main__":
         ("PostgreSQL \u2014 Performance & Health",    build_postgres),
         ("SQL Server \u2014 Performance & Health",    build_mssql),
         ("SQL Server \u2014 Overview (Datadog Equivalent)", build_mssql_overview),
+        ("Spotlight \u2014 Health Heat Map (SQL Server, Windows, MongoDB)", build_spotlight_heatmap),
+        ("Spotlight \u2014 SQL Server Overview (synthetic)", build_spotlight_sql_overview),
         ("MongoDB \u2014 Operations & Health",        build_mongodb),
         ("Oracle \u2014 Performance & Health",        build_oracle),
     ]

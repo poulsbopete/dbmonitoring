@@ -149,6 +149,39 @@ for custom panels.
 
 ---
 
+### Spotlight-style views (Quest Spotlight comparison)
+
+Two dashboards approximate **Quest Spotlight** for customers evaluating “single-pane
+SQL Server + host health” tools.
+
+**Dashboard:** `Spotlight — Health Heat Map (SQL Server, Windows, MongoDB)`
+
+1. **Health heat map** — Time (columns) × **grid row** (rows: each SQL instance, matching
+   **Windows** host row, and each **MongoDB** node). Cell colour maps to
+   `spotlight.health.severity`: **0** informational (blue), **1** healthy (green),
+   **2** warning (yellow), **3** critical (red). Adjust the Lens colour ramp if needed
+   so higher numbers read as “hotter.”
+2. **Severity lines** — Same data as a multi-line trend for narration.
+3. **Ranking + detail table** — Average / peak severity by row, with `cloud.platform`
+   (on-premises, **Azure** VM, **Azure SQL Managed Instance**, **MongoDB Atlas** on AWS).
+
+Synthetic data includes **four** SQL Server targets (two on-prem, Azure VM, Azure MI) and
+**three** MongoDB nodes (two on-prem replica set, one Atlas-style primary).
+
+**Dashboard:** `Spotlight — SQL Server Overview (synthetic)`
+
+Filtered to **`mssql-prod-01`**. Walk the panels: **Sessions** (response time, counts,
+utilisation bar), **Performance health** (gauge + system table: build, host, cloud,
+virtualisation), **Processes** (total / system / user / blocked + batch counter),
+**Virtualization overhead**, **CPU** gauge, **Memory** (total, buffer cache, PLE,
+procedure cache), **Background** (error-log rate, services running).
+
+**OTel coverage notes:** See `assets/spotlight-otel-gaps.md` in the repo for what the
+OpenTelemetry SQL Server receiver covers today versus Spotlight-only depth (blocking
+chains, ERRORLOG text, full Windows OS counters, PaaS SQL boundaries).
+
+---
+
 ### PostgreSQL — Performance & Health
 
 **Dashboard:** `PostgreSQL — Performance & Health`

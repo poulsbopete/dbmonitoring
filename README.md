@@ -37,7 +37,8 @@ Elastic Managed OTLP endpoint
         └── metrics-oracledbreceiver.otel.otel-default    ← Oracle metrics
         │
         ▼
-Kibana Dashboards (5 × platform dashboards, deployed on track start)
+Kibana Dashboards (5 × platform + Datadog-style SQL overview + 2 × Spotlight-style,
+  deployed on track start)
 Alert Rules      (6 × pre-wired rules with AI RCA workflow)
 SLOs             (6 × service level objectives, managed via workflow)
 ```
@@ -54,12 +55,15 @@ dbmonitoring/
 │   ├── db_otel_generator.py      # Synthetic telemetry for all 5 DB types
 │   └── requirements.txt          # requests>=2.31.0
 ├── scripts/
-│   └── import_dashboards.py      # Deploys all 5 dashboards via Kibana Saved Objects API
+│   └── import_dashboards.py      # Deploys all dashboards (platform + Spotlight) via Saved Objects API
 ├── alert-rules/
 │   └── deploy-alert-rules.py     # Deploys 6 alert rules + RCA/SLO workflows
 ├── workflows/
 │   ├── rca-workflow.yaml         # AI-powered Root Cause Analysis workflow
 │   └── db-slo-workflow.yaml      # Idempotent SLO management workflow (runs every 24h)
+├── assets/
+│   ├── sample-dashboards/        # Datadog/Dynatrace prompt examples + screenshots
+│   └── spotlight-otel-gaps.md    # Spotlight vs OpenTelemetry coverage (PaaS, OS, logs)
 ├── slides/                       # Customer-facing slide deck (React + Vite + Tailwind)
 │   └── src/slides/               # 11 slides, deployed to GitHub Pages
 └── serverless-db-monitoring/     # Instruqt track
@@ -96,20 +100,30 @@ dbmonitoring/
 - **Storage**: TSDB (live timestamps only, ~2h window)
 
 ### SQL Server (metrics) — highest priority
-- **2 instances** (production + secondary), **4 databases** each
-- `sqlserver.user.connection.count`, `sqlserver.page.buffer_cache.hit_ratio`,
-  `sqlserver.lock.wait_time.avg`, `sqlserver.lock.wait.count`, `sqlserver.deadlock.count`,
+- **4 instances**: two on-premises, **Azure VM**, **Azure SQL Managed Instance** (synthetic);
+  **4 databases** each where applicable
+- Standard receiver-style: `sqlserver.user.connection.count`,
+  `sqlserver.page.buffer_cache.hit_ratio`, `sqlserver.lock.wait_time.avg`,
+  `sqlserver.lock.wait.count`, `sqlserver.deadlock.count`,
   `sqlserver.batch_sql_request.count`, `sqlserver.database.io.read_latency`,
   `sqlserver.database.io.write_latency`, `sqlserver.database.size`
+- **Spotlight-style (synthetic)**: `spotlight.health.severity` (per SQL + Windows row),
+  `sqlserver.spotlight.*` (sessions, CPU, memory, processes, PLE, procedure cache,
+  virtualization overhead, error-log rate, services)
+- Resource attributes: `cloud.provider`, `cloud.platform`, `sqlserver.build_version`,
+  `host.is_virtual`
 - **Storage**: TSDB (live timestamps only, ~2h window)
 
 ### MongoDB (metrics)
-- **2 instances** (primary + secondary, replica set `rs0`), **4 databases**
+- **3 nodes**: **2** on-premises (replica set `rs0`) + **1** Atlas-style primary
+  (`mongo-atlas-shard0`, `cloud.provider=aws`)
 - `mongodb.operation.count` (by type: insert/query/update/delete/getmore/command),
   `mongodb.connection.count`, `mongodb.memory.usage`, `mongodb.memory.virtual`,
   `mongodb.document.operation.count`, `mongodb.network.io.receive/transmit`,
   `mongodb.replication.lag` (secondary only), `mongodb.database.size/collection.count`
 - **Storage**: TSDB (live timestamps only, ~2h window)
+- **Spotlight heat map**: `spotlight.health.severity` with `spotlight.grid_row` =
+  `"{host} · MongoDB"`; attributes `mongo.deployment`, `cloud.provider`, `cloud.platform`
 
 ### Oracle (metrics)
 - **2 instances** (`oracle-prod-01` production, `oracle-prod-02` standby)
