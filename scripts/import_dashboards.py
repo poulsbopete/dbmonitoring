@@ -8,8 +8,11 @@ Aligns with the Elastic **kibana-dashboards** agent skill and Dashboard / Visual
 Usage:  python3 scripts/import_dashboards.py
 Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
         Optional KIBANA_ELASTIC_API_VERSION (default 2023-10-31) for the Dashboards API version header.
+
+If a dashboard with the same title already exists, it is deleted first (GET /api/dashboards,
+then DELETE /api/dashboards/{id}) so re-runs update in place without duplicate titles.
 """
-import json, os, sys, uuid, urllib.request, urllib.error, base64
+import json, os, sys, uuid, urllib.parse, urllib.request, urllib.error, base64
 
 KIBANA_URL = os.environ.get("KIBANA_URL", "").rstrip("/")
 API_KEY = (
@@ -50,19 +53,53 @@ def gid():
     return str(uuid.uuid4())
 
 
-def post(path, body):
-    req = urllib.request.Request(
-        f"{KIBANA_URL}{path}",
-        data=json.dumps(body).encode(),
-        headers=HEADERS,
-        method="POST",
-    )
+def _request_json(method, path, body=None):
+    data = None if body is None else json.dumps(body).encode()
+    hdrs = {k: v for k, v in HEADERS.items() if k.lower() != "content-type" or body is not None}
+    req = urllib.request.Request(f"{KIBANA_URL}{path}", data=data, headers=hdrs, method=method)
     try:
         with urllib.request.urlopen(req) as r:
-            return json.loads(r.read())
+            raw = r.read()
+            if not raw:
+                return None
+            return json.loads(raw)
     except urllib.error.HTTPError as e:
         msg = e.read().decode()
         sys.exit(f"HTTP {e.code} on {path}: {msg[:500]}")
+
+
+def post(path, body):
+    return _request_json("POST", path, body)
+
+
+def list_dashboard_ids_by_title():
+    """Return {title: id} for dashboards from GET /api/dashboards (Serverless returns full list)."""
+    path = "/api/dashboards"
+    payload = _request_json("GET", path, None)
+    out = {}
+    for row in payload.get("dashboards") or []:
+        if not isinstance(row, dict):
+            continue
+        did = row.get("id")
+        data = row.get("data") or {}
+        title = (data.get("title") or "").strip()
+        if did and title:
+            out[title] = did
+    return out
+
+
+def delete_dashboard_by_id(dash_id):
+    """DELETE /api/dashboards/{id} — ignore 404."""
+    qid = urllib.parse.quote(dash_id, safe="")
+    hdrs = {k: v for k, v in HEADERS.items() if k.lower() != "content-type"}
+    req = urllib.request.Request(f"{KIBANA_URL}/api/dashboards/{qid}", headers=hdrs, method="DELETE")
+    try:
+        with urllib.request.urlopen(req) as r:
+            return 200 <= r.status < 300
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return True
+        return False
 
 
 def create_dashboard_api(title, description, panels, time_from=None, time_to="now"):
@@ -733,15 +770,21 @@ if __name__ == "__main__":
         ("IBM Db2 \u2014 Performance & Health (LUW)", build_db2),
         ("Oracle \u2014 Performance & Health", build_oracle),
     ]
+    existing = list_dashboard_ids_by_title()
     ids = []
     for name, builder in dashboards:
         print(f"\nDeploying: {name}")
+        old_id = existing.get(name)
+        if old_id:
+            print(f"  Removing previous definition (id={old_id})…")
+            if not delete_dashboard_by_id(old_id):
+                print(f"  WARN: could not delete existing dashboard {old_id}", file=sys.stderr)
         dash_id = builder()
         ids.append((name, dash_id))
         print(f"  ✓ Dashboard ID: {dash_id}")
 
     print(f"\n{'='*60}")
-    print("All dashboards created successfully!")
+    print("All dashboards deployed successfully!")
     print(f"{'='*60}")
     for name, dash_id in ids:
         print(f"  {name}")
