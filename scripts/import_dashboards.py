@@ -181,17 +181,6 @@ def viz_gauge(title, esql, column):
     }
 
 
-def viz_datatable(title, esql, metric_columns, row_columns):
-    """ES|QL-backed table (readable multi-line cells vs a single metric tile)."""
-    return {
-        "type": "data_table",
-        "title": title,
-        "data_source": {"type": "esql", "query": esql},
-        "metrics": [{"column": c} for c in metric_columns],
-        "rows": [{"column": c} for c in row_columns],
-    }
-
-
 def viz_treemap(title, esql, metric_column, group_by_columns):
     """Hierarchical partition chart (Quest Spotlight–style topology blocks)."""
     return {
@@ -220,18 +209,18 @@ def _rec_platform_where(platform_key: str, include_legacy_null: bool) -> str:
 
 
 def ai_recommendation_panels(y_row, platform_key: str, include_legacy_null: bool = False):
-    """Single full-width table: latest markdown text only (no timestamps or run counts)."""
+    """Latest recommendation text only. Serverless POST /api/dashboards rejects inline datatables;
+    a single primary metric is the supported way to show one ES|QL string value."""
     w = _rec_platform_where(platform_key, include_legacy_null)
     q = (
         f"FROM {REC_INDEX} | WHERE {w} | SORT @timestamp DESC | LIMIT 1 "
         "| STATS `Recommendation` = SUBSTRING(TO_STRING(MAX(`recommendation`)), 0, 12000)"
     )
     return [
-        P((0, y_row, 48, 12), "AI recommendations", viz_datatable(
+        P((0, y_row, 48, 12), "AI recommendations", viz_metric(
             "AI recommendations",
             q,
-            ["Recommendation"],
-            [],
+            "Recommendation",
         )),
     ]
 
