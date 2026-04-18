@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
+import { DashboardScreenshot } from '@/components/DashboardScreenshot';
 import { Activity, Database, HardDrive, Timer } from 'lucide-react';
-import { Sparkline } from '@/components/charts/Sparkline';
-import { HBar } from '@/components/charts/HBar';
 import { CountUp } from '@/components/charts/CountUp';
 
 const metrics = [
@@ -10,15 +9,6 @@ const metrics = [
   { icon: Database, label: 'Buffer pool hit', value: 0.94, color: '#4589ff', decimals: 2 },
   { icon: Timer, label: 'Log util %', value: 68, color: '#4589ff', decimals: 0 },
   { icon: HardDrive, label: 'Tablespaces', value: 4, color: '#4589ff', decimals: 0 },
-];
-
-const connTrend = [120, 132, 155, 168, 175, 182, 198, 210, 225, 248, 265, 278, 285, 272, 290, 285];
-
-const tablespaces = [
-  { label: 'WAREHOUSE_TS', value: 128, color: '#4589ff' },
-  { label: 'USERSPACE1', value: 70, color: '#4589ff' },
-  { label: 'SYSCATSPACE', value: 5.8, color: '#4589ff' },
-  { label: 'TEMPSPACE1', value: 7, color: '#4589ff' },
 ];
 
 const capabilities = [
@@ -73,21 +63,11 @@ export function Slide08Db2() {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}
-            className="flex flex-col gap-3 w-48 flex-shrink-0">
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Connections</p>
-              <Sparkline data={connTrend} color="#4589ff" height={52} delay={0.5} />
-              <div className="flex items-center gap-2 text-[9px]">
-                <div className="flex-1 h-px border-t border-dashed border-amber-400/50" />
-                <span className="text-amber-400/70">alert@350</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2 flex-1">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Tablespace Used (GB)</p>
-              <HBar items={tablespaces} delay={0.6} unit=" GB" />
-            </div>
-          </motion.div>
+          <DashboardScreenshot
+            src="dashboards/db2.png"
+            alt="Kibana dashboard: IBM Db2 LUW performance and health with AI recommendations"
+            caption="Live dashboard · Elastic Observability Serverless"
+          />
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}

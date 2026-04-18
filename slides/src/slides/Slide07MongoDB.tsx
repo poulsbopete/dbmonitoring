@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
+import { DashboardScreenshot } from '@/components/DashboardScreenshot';
 import { Layers, HardDrive, Zap, Network } from 'lucide-react';
-import { Sparkline } from '@/components/charts/Sparkline';
-import { Donut } from '@/components/charts/Donut';
 import { CountUp } from '@/components/charts/CountUp';
 
 const metrics = [
@@ -12,7 +11,6 @@ const metrics = [
   { icon: Layers, label: 'Collections', value: 14, color: '#00bfa5' },
 ];
 
-const opsTrend = [1800, 2200, 2600, 2900, 3100, 2700, 3200, 3400, 3100, 3500, 3420, 3300, 3600, 3200, 3420, 3500, 3300, 3600, 3420, 3500];
 const capabilities = [
   'Operation rate by type: insert, query, update, delete, command',
   'Memory usage in GB (resident + virtual)',
@@ -65,20 +63,11 @@ export function Slide07MongoDB() {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}
-            className="flex flex-col gap-3 w-48 flex-shrink-0">
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Operations/s</p>
-              <Sparkline data={opsTrend} color="#00bfa5" height={52} delay={0.5} />
-            </div>
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-3 flex-1 items-center justify-around">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold self-start">Connection Pool</p>
-              <Donut value={62} color="#00bfa5" size={80} label="62%" sublabel="of max" delay={0.6} thickness={10} />
-              <div className="flex gap-3 text-[9px] text-white/50">
-                <span>62 active</span><span>/</span><span>100 max</span>
-              </div>
-            </div>
-          </motion.div>
+          <DashboardScreenshot
+            src="dashboards/mongodb.png"
+            alt="Kibana dashboard: MongoDB operations and health with AI recommendations"
+            caption="Live dashboard · Elastic Observability Serverless"
+          />
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}

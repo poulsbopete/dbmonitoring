@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
+import { DashboardScreenshot } from '@/components/DashboardScreenshot';
 import { Clock, AlertCircle, TrendingUp, Table2 } from 'lucide-react';
-import { Sparkline } from '@/components/charts/Sparkline';
-import { HBar } from '@/components/charts/HBar';
 import { CountUp } from '@/components/charts/CountUp';
 
 const metrics = [
@@ -10,15 +9,6 @@ const metrics = [
   { icon: AlertCircle, label: 'Error Events', value: 312, display: '312', color: '#ef4444' },
   { icon: TrendingUp, label: 'Avg Query (s)', value: 2.4, display: '2.4s', color: '#f59e0b' },
   { icon: Table2, label: 'Tables', value: 18, display: '18', color: '#f59e0b' },
-];
-
-const slowQueryTrend = [12, 18, 14, 32, 28, 45, 22, 38, 50, 42, 60, 55, 48, 72, 65, 80, 58, 76, 90, 70];
-const topTables = [
-  { label: 'scheduled_jobs', value: 89, color: '#f59e0b' },
-  { label: 'attribution', value: 74, color: '#f59e0b' },
-  { label: 'report_cache', value: 61, color: '#f59e0b' },
-  { label: 'audit_log', value: 48, color: '#f59e0b' },
-  { label: 'customers', value: 35, color: '#f59e0b' },
 ];
 
 const capabilities = [
@@ -73,19 +63,11 @@ export function Slide04MySQL() {
             </motion.div>
           </div>
 
-          {/* Right: infographics */}
-          <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}
-            className="flex flex-col gap-3 w-48 flex-shrink-0">
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Slow Query Rate</p>
-              <Sparkline data={slowQueryTrend} color="#f59e0b" height={56} delay={0.5} />
-              <p className="text-white/40 text-[9px] text-center">Slow query rate →</p>
-            </div>
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2 flex-1">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Top Tables by Slow Queries</p>
-              <HBar items={topTables} delay={0.6} />
-            </div>
-          </motion.div>
+          <DashboardScreenshot
+            src="dashboards/mysql.png"
+            alt="Kibana dashboard: MySQL slow query and error monitoring with AI recommendations in Markdown"
+            caption="Live dashboard · Elastic Observability Serverless"
+          />
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}

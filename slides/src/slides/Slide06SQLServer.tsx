@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
+import { DashboardScreenshot } from '@/components/DashboardScreenshot';
 import { Activity, Lock, BarChart2, Timer } from 'lucide-react';
-import { Sparkline } from '@/components/charts/Sparkline';
-import { HBar } from '@/components/charts/HBar';
 import { CountUp } from '@/components/charts/CountUp';
 
 const metrics = [
@@ -10,14 +9,6 @@ const metrics = [
   { icon: Lock, label: 'Lock Waits', value: 143, color: '#ef4444' },
   { icon: BarChart2, label: 'Transactions/s', value: 1420, color: '#8b5cf6' },
   { icon: Timer, label: 'Avg Compile (ms)', value: 12.4, color: '#a855f7' },
-];
-
-const batchTrend = [1200, 1500, 1800, 2100, 2400, 2800, 2600, 2900, 2700, 3100, 2840, 2950, 2750, 3000, 2840, 2900, 2800, 3100, 2950, 2840];
-const lockBreakdown = [
-  { label: 'Table lock', value: 55, color: '#8b5cf6' },
-  { label: 'Row lock', value: 42, color: '#a855f7' },
-  { label: 'Page lock', value: 28, color: '#6d28d9' },
-  { label: 'Key lock', value: 18, color: '#7c3aed' },
 ];
 
 const capabilities = [
@@ -72,17 +63,11 @@ export function Slide06SQLServer() {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}
-            className="flex flex-col gap-3 w-48 flex-shrink-0">
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Batch Requests/s</p>
-              <Sparkline data={batchTrend} color="#8b5cf6" height={56} delay={0.5} />
-            </div>
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2 flex-1">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Lock Wait Breakdown</p>
-              <HBar items={lockBreakdown} delay={0.6} />
-            </div>
-          </motion.div>
+          <DashboardScreenshot
+            src="dashboards/sqlserver.png"
+            alt="Kibana dashboard: SQL Server performance and health with AI recommendations"
+            caption="Live dashboard · Elastic Observability Serverless"
+          />
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}

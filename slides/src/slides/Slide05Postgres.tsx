@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
+import { DashboardScreenshot } from '@/components/DashboardScreenshot';
 import { Users, Zap, RotateCcw, ShieldAlert } from 'lucide-react';
-import { Sparkline } from '@/components/charts/Sparkline';
-import { Donut } from '@/components/charts/Donut';
 import { CountUp } from '@/components/charts/CountUp';
 
 const metrics = [
@@ -12,7 +11,6 @@ const metrics = [
   { icon: RotateCcw, label: 'Tuple Inserts (M)', value: 1.2, color: '#3b82f6' },
 ];
 
-const connTrend = [55, 62, 70, 65, 80, 84, 76, 90, 85, 92, 88, 84, 79, 83, 87, 84, 81, 86, 84, 82];
 const capabilities = [
   'Backend connections per DB — alert before max_connections breach',
   'Deadlock rate trend over time (counter_long → TO_DOUBLE cast)',
@@ -64,23 +62,11 @@ export function Slide05Postgres() {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}
-            className="flex flex-col gap-3 w-48 flex-shrink-0">
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Active Connections</p>
-              <Sparkline data={connTrend} color="#3b82f6" height={52} delay={0.5} />
-              {/* Alert threshold line annotation */}
-              <div className="flex items-center gap-2 text-[9px]">
-                <div className="flex-1 h-px border-t border-dashed border-red-400/50" />
-                <span className="text-red-400/70">alert@80</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-3 flex-1 items-center justify-center">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold self-start">Buffer Cache Hit</p>
-              <Donut value={98.2} color="#00bfa5" size={88} label="98.2%" sublabel="cache hit" delay={0.6} thickness={10} />
-              <p className="text-white/40 text-[9px] text-center">Target: &gt;95% · ✓ Healthy</p>
-            </div>
-          </motion.div>
+          <DashboardScreenshot
+            src="dashboards/postgresql.png"
+            alt="Kibana dashboard: PostgreSQL performance and health with AI recommendations"
+            caption="Live dashboard · Elastic Observability Serverless"
+          />
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}

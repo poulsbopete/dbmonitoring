@@ -1,8 +1,7 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
+import { DashboardScreenshot } from '@/components/DashboardScreenshot';
 import { Users, Layers, BookOpen, Cpu } from 'lucide-react';
-import { Sparkline } from '@/components/charts/Sparkline';
-import { HBar } from '@/components/charts/HBar';
 import { CountUp } from '@/components/charts/CountUp';
 
 const metrics = [
@@ -10,16 +9,6 @@ const metrics = [
   { icon: Layers,  label: 'Tablespaces',     value: 7,   color: '#f97316' },
   { icon: BookOpen,label: 'Hard Parses/min', value: 38,  color: '#ef4444' },
   { icon: Cpu,     label: 'PGA Memory (GB)', value: 1.8, color: '#f97316' },
-];
-
-const sessionTrend = [55, 68, 72, 85, 90, 88, 102, 118, 130, 142, 138, 145, 150, 142, 135, 140, 142, 138, 144, 142];
-
-const tablespaces = [
-  { label: 'ANALYTICS', value: 66,  color: '#f97316' },
-  { label: 'FINANCE',   value: 57,  color: '#f97316' },
-  { label: 'USERS',     value: 31,  color: '#f97316' },
-  { label: 'HR',        value: 13,  color: '#f97316' },
-  { label: 'SYSTEM',    value: 1.8, color: '#f97316' },
 ];
 
 const capabilities = [
@@ -74,21 +63,11 @@ export function Slide08Oracle() {
             </motion.div>
           </div>
 
-          <motion.div initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.35 }}
-            className="flex flex-col gap-3 w-48 flex-shrink-0">
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Active Sessions</p>
-              <Sparkline data={sessionTrend} color="#f97316" height={52} delay={0.5} />
-              <div className="flex items-center gap-2 text-[9px]">
-                <div className="flex-1 h-px border-t border-dashed border-red-400/50" />
-                <span className="text-red-400/70">alert@250</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-2 flex-1">
-              <p className="text-white/55 text-[9px] uppercase tracking-widest font-semibold">Tablespace Used (GB)</p>
-              <HBar items={tablespaces} delay={0.6} unit=" GB" />
-            </div>
-          </motion.div>
+          <DashboardScreenshot
+            src="dashboards/oracle.png"
+            alt="Kibana dashboard: Oracle performance and health with AI recommendations"
+            caption="Live dashboard · Elastic Observability Serverless"
+          />
         </div>
 
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}

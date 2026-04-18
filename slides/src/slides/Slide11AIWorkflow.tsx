@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { SlideLayout } from '@/components/SlideLayout';
+import { DashboardScreenshot } from '@/components/DashboardScreenshot';
 import { Bell, Search, FileText, CheckCircle, ArrowDown } from 'lucide-react';
 
 const steps = [
@@ -51,7 +52,7 @@ function Connector({ color, delay }: { color: string; delay: number }) {
 export function Slide11AIWorkflow() {
   return (
     <SlideLayout shadowColor="rgba(168, 85, 247, 0.5)" shadowSpeed={55} shadowScale={80}>
-      <div className="flex flex-col h-full px-10 py-8 gap-4 overflow-hidden">
+      <div className="flex flex-col h-full px-10 py-8 gap-3 overflow-hidden">
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
           <p className="text-[#a855f7] text-xs font-semibold tracking-widest uppercase mb-1">AI Workflows</p>
           <h2 className="text-4xl font-bold text-white leading-tight">
@@ -125,6 +126,17 @@ export function Slide11AIWorkflow() {
               ))}
             </div>
           </motion.div>
+        </div>
+
+        <div className="flex justify-center w-full flex-shrink-0 pt-1">
+          <DashboardScreenshot
+            src="dashboards/workflows-ai-recommendations.png"
+            alt="Kibana Workflows editor: Database Monitoring AI recommendations with successful execution"
+            caption="Database Monitoring — AI recommendations · schedules Markdown into dashboards"
+            delay={0.55}
+            wrapperClassName="flex flex-col gap-2 w-full max-w-4xl mx-auto"
+            imageClassName="max-h-[min(200px,26vh)] w-full"
+          />
         </div>
       </div>
     </SlideLayout>
