@@ -141,14 +141,12 @@ def ensure_rec_markdown_library_objects():
         "_This panel updates automatically when **Database Monitoring — AI recommendations** completes "
         "(scheduled every 10 minutes or on manual run)._"
     )
-    ok = True
     for p in REC_SO_MARKDOWN_PLATFORMS:
         sid = rec_markdown_so_id(p)
         title = f"AI recommendations — {p}"
         if _markdown_saved_object_exists(sid):
             continue
-        if not _post_markdown_saved_object_try(sid, placeholder, title):
-            ok = False
+        _post_markdown_saved_object_try(sid, placeholder, title)
     _REC_MARKDOWN_SO_READY = all(_markdown_saved_object_exists(rec_markdown_so_id(p)) for p in REC_SO_MARKDOWN_PLATFORMS)
     if not _REC_MARKDOWN_SO_READY:
         print(
