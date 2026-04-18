@@ -1,20 +1,34 @@
 ---
-description: After Instruqt/workshop changes, push Git and run instruqt track push
+description: Always push Git and Instruqt after changes; sync track checksum
 alwaysApply: true
 ---
 
-# Git + Instruqt publish (required)
+# Git + Instruqt (always)
 
-This repo powers the **Instruqt** track `serverless-db-monitoring`. Two systems must stay in sync:
+**Default:** When you change anything in this repository that should persist for the team or for labs, **finish by publishing**—do not stop at local commits only.
 
-1. **Git remote** (`origin`) — the sandbox **clones** this repo at runtime (`setup-es3-api`). If you only push metadata to Instruqt, labs still run old Python/dashboard code.
-2. **Instruqt** — the track **title, teaser, description, and challenge YAML** live on Instruqt until you run **`instruqt track push`**. GitHub does not update that UI.
+## 1. Git
 
-When you finish changes that touch the workshop (including `serverless-db-monitoring/`, `tools/db_otel_generator.py`, `scripts/import_dashboards.py`, `alert-rules/`, `workflows/`, or demo-facing `slides/` / `README.md` counts), **before closing the task**:
+- **`git add`**, **`git commit`** with a clear message, then **`git push origin`** to the branch sandboxes use (**`main`** unless the user says otherwise).
+- If there is nothing to commit, still confirm **`git status`** is clean after pushes.
 
-1. Commit if needed, then **`git push`** to the branch sandboxes use (default **`main`**).
-2. From the repo: **`cd serverless-db-monitoring && instruqt track push`** (requires `instruqt auth login` once).
+## 2. Instruqt
 
-Optional one-shot: `./serverless-db-monitoring/publish-track.sh` from the repo root (pushes current branch, then Instruqt).
+This repo powers the Instruqt track under **`serverless-db-monitoring/`**. Track metadata and checksum live on Instruqt until you push.
 
-Do **not** treat “pushed to GitHub” as sufficient for Instruqt marketing copy or challenge metadata.
+- From repo root: **`cd serverless-db-monitoring && instruqt track push`** (CLI must be installed; `instruqt auth login` once per machine).
+
+## 3. Checksum follow-up
+
+**`instruqt track push`** often rewrites **`serverless-db-monitoring/track.yml`** (`checksum`). After a successful push:
+
+1. Check **`git status`**. If **`track.yml`** changed, **commit** (e.g. `instruqt: sync track checksum after push`) and **`git push`** again so Git matches Instruqt.
+
+## 4. Optional script
+
+**`./serverless-db-monitoring/publish-track.sh`** (if present): use when it matches the desired branch; still verify checksum commit afterward.
+
+## Reminder
+
+- **Git alone** does not update Instruqt UI, challenge text, or **`track.yml`** checksum on the platform.
+- **Instruqt alone** does not update code sandboxes clone from GitHub—both matter.
