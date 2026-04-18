@@ -256,7 +256,7 @@ if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
   _dash_rc=$?
   set -e
   echo "$deploy_out" | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log
-  if [ "$_dash_rc" -ne 0 ] || ! echo "$deploy_out" | grep -q "All dashboards created successfully"; then
+  if [ "$_dash_rc" -ne 0 ] || ! echo "$deploy_out" | grep -q "All dashboards deployed successfully"; then
     echo "ERROR: Dashboard deployment failed (exit ${_dash_rc}). See /tmp/db-monitoring-logs/dashboard-deploy.log" >&2
     echo "Common causes: Elastic-Api-Version (use 2023-10-31), or Kibana 9.4+ panel schema (panels must be type vis, not lens)." >&2
     exit 1

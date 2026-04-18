@@ -7,6 +7,7 @@ Aligns with the Elastic **kibana-dashboards** agent skill and Dashboard / Visual
 
 Usage:  python3 scripts/import_dashboards.py
 Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
+        Optional ES_URL for Elasticsearch (defaults to Kibana host with .kb. replaced by .es. on Serverless).
         Optional KIBANA_ELASTIC_API_VERSION (default 2023-10-31) for the Dashboards API version header.
 
 If a dashboard with the same title already exists, it is deleted first (GET /api/dashboards,
@@ -28,6 +29,18 @@ if not KIBANA_URL:
 if not API_KEY and not ES_PASS:
     sys.exit("ERROR: KIBANA_API_KEY or ES_API_KEY or ES_PASSWORD not set")
 
+
+def _es_url_effective() -> str:
+    explicit = (os.environ.get("ES_URL") or os.environ.get("ELASTICSEARCH_URL") or "").strip().rstrip("/")
+    if explicit:
+        return explicit
+    if ".kb." in KIBANA_URL:
+        return KIBANA_URL.replace(".kb.", ".es.", 1)
+    return ""
+
+
+ES_URL = _es_url_effective()
+
 HEADERS = {
     "Authorization": f"ApiKey {API_KEY}" if API_KEY
     else "Basic " + base64.b64encode(f"{ES_USER}:{ES_PASS}".encode()).decode(),
@@ -47,6 +60,15 @@ REC_INDEX = "db-monitoring-recommendations"
 
 # Kibana time picker default for every deployed dashboard (hot OTLP window).
 DEFAULT_TIME_RANGE = ("now-1m", "now")
+
+# Markdown panels cannot read Elasticsearch directly; we embed text fetched at deploy time.
+REC_MARKDOWN_MAX = 48000
+ES_HEADERS = {
+    "Authorization": HEADERS["Authorization"],
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "elastic-agentic",
+}
 
 
 def gid():
@@ -70,6 +92,37 @@ def _request_json(method, path, body=None):
 
 def post(path, body):
     return _request_json("POST", path, body)
+
+
+def _esql_first_row(esql: str):
+    """Run ES|QL against ES_URL; return first data row as {column_name: value} or None."""
+    if not ES_URL or not API_KEY:
+        return None
+    req = urllib.request.Request(
+        f"{ES_URL}/_query",
+        data=json.dumps({"query": esql}).encode(),
+        headers=ES_HEADERS,
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req) as r:
+            payload = json.loads(r.read().decode())
+    except urllib.error.HTTPError as e:
+        print(f"WARN: ES|QL on ES ({e.code}): {e.read()[:240]!r}", file=sys.stderr)
+        return None
+    except OSError as e:
+        print(f"WARN: ES|QL request failed: {e}", file=sys.stderr)
+        return None
+    cols = payload.get("columns") or []
+    rows = payload.get("values") or []
+    if not rows:
+        return None
+    names = [c.get("name") for c in cols]
+    out = {}
+    for i, name in enumerate(names):
+        if name and i < len(rows[0]):
+            out[name] = rows[0][i]
+    return out or None
 
 
 def list_dashboard_ids_by_title():
@@ -201,6 +254,17 @@ def P(box, title, chart_config):
     return vis_panel(gid(), x, y, w, h, cfg)
 
 
+def markdown_panel(box, content: str):
+    """Dashboard Markdown embeddable (Kibana 9.4+). Content is GitHub-flavored Markdown; not ES|QL-backed."""
+    x, y, w, h = box
+    return {
+        "type": "markdown",
+        "id": gid(),
+        "grid": {"x": x, "y": y, "w": w, "h": h},
+        "config": {"content": content},
+    }
+
+
 def _rec_platform_where(platform_key: str, include_legacy_null: bool) -> str:
     """ES|QL WHERE clause: filter recommendations index by workflow field database_platform."""
     if include_legacy_null:
@@ -209,17 +273,43 @@ def _rec_platform_where(platform_key: str, include_legacy_null: bool) -> str:
 
 
 def ai_recommendation_panels(y_row, platform_key: str, include_legacy_null: bool = False):
-    """Latest recommendation text only. Serverless POST /api/dashboards rejects inline datatables;
-    a single primary metric is the supported way to show one ES|QL string value."""
+    """Rendered Markdown when a row exists at deploy time (fetched from ES via ES|QL).
+
+    Dashboard Markdown is static in Kibana; we embed the latest workflow text from Elasticsearch
+    when ``import_dashboards.py`` runs. If the index is empty, fall back to a metric panel (live
+    ES|QL string, not Markdown). Re-run the importer after the workflow to refresh Markdown.
+    """
     w = _rec_platform_where(platform_key, include_legacy_null)
-    q = (
+    q_metric = (
         f"FROM {REC_INDEX} | WHERE {w} | SORT @timestamp DESC | LIMIT 1 "
         "| STATS `Recommendation` = SUBSTRING(TO_STRING(MAX(`recommendation`)), 0, 12000)"
     )
+    q_snap = f"FROM {REC_INDEX} | WHERE {w} | SORT @timestamp DESC | LIMIT 1 | KEEP recommendation"
+    row = _esql_first_row(q_snap)
+    raw = row.get("recommendation") if row else None
+    text = str(raw).strip() if raw is not None else ""
+    if text:
+        if len(text) > REC_MARKDOWN_MAX:
+            text = text[: REC_MARKDOWN_MAX - 20] + "\n\n… _(truncated)_"
+        body = (
+            text
+            + "\n\n---\n"
+            + "_Snapshot from the last **dashboard deploy** (Markdown cannot stream from Elasticsearch on this API). "
+            "After a new workflow run, re-run `scripts/import_dashboards.py` to update this panel._"
+        )
+        return [markdown_panel((0, y_row, 48, 14), body)]
+    note = (
+        "### AI recommendations\n\n"
+        "_No recommendation row for this engine at deploy time._ "
+        "Run **Database Monitoring — AI recommendations**, widen the time picker if charts are empty, "
+        "then **re-run this importer** so the Markdown panel can embed formatted text. "
+        "Until then, the metric below shows live plain text from the index.\n"
+    )
     return [
-        P((0, y_row, 48, 12), "AI recommendations", viz_metric(
+        markdown_panel((0, y_row, 48, 5), note),
+        P((0, y_row + 5, 48, 9), "AI recommendations (plain text)", viz_metric(
             "AI recommendations",
-            q,
+            q_metric,
             "Recommendation",
         )),
     ]
