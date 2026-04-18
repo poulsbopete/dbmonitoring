@@ -59,10 +59,6 @@ notes:
     | Data sovereignty | ✗ (vendor cloud) | ✗ | ✓ **your cluster** |
     | Vendor lock-in | High | High | **None — open standards** |
 tabs:
-- id: ns5os71akjta
-  title: Terminal
-  type: terminal
-  hostname: es3-api
 - id: cz9hvpxnxobm
   title: Elastic Serverless
   type: service
@@ -79,6 +75,10 @@ tabs:
     value: 'script-src ''self'' https://kibana.estccdn.com; worker-src blob: ''self'';
       style-src ''unsafe-inline'' ''self'' https://kibana.estccdn.com; style-src-elem
       ''unsafe-inline'' ''self'' https://kibana.estccdn.com'
+- id: ns5os71akjta
+  title: Terminal
+  type: terminal
+  hostname: es3-api
 difficulty: ""
 timelimit: 0
 enhanced_loading: null
@@ -89,7 +89,7 @@ enhanced_loading: null
 ## Part 1 — Explore the pre-built dashboards
 
 Ten dashboards were deployed automatically when this track started (six database platforms plus SQL Server overview and three Spotlight-style views).
-Open **Elastic Serverless → Dashboards**. Pre-built dashboards open with **Last 1 minute** so live OTLP charts populate quickly. For narrated walkthroughs, widen the time picker (for example **Last 2 hours**). **Latest AI recommendation** / **Stored recommendation runs** use the same global range—if a row is missing after a workflow run, try **Last 15 minutes** or more (index **db-monitoring-recommendations**, filtered by **`database_platform`**). The workflow **Database Monitoring — AI recommendations** runs on a **10-minute schedule** and writes **six** recommendations per run (one per engine); you can also trigger it manually under **Management → Workflows**.
+The lab opens on the **Elastic Serverless** tab first (the **Terminal** tab is for troubleshooting or optional Cursor steps). Open **Dashboards** from the left nav. Pre-built dashboards open with **Last 1 minute** so live OTLP charts populate quickly. For narrated walkthroughs, widen the time picker (for example **Last 2 hours**). **Latest AI recommendation** / **Stored recommendation runs** use the same global range—if a row is missing after a workflow run, try **Last 15 minutes** or more (index **db-monitoring-recommendations**, filtered by **`database_platform`**). The workflow **Database Monitoring — AI recommendations** runs on a **10-minute schedule** and writes **six** recommendations per run (one per engine); you can also trigger it manually under **Management → Workflows**.
 
 **Easy path:** finish **Part 1** (dashboards), then **Part 2** (create an alert from a panel—about two minutes). That is a complete lap for most audiences. **Optional:** the **Cursor + Elastic Agent Skills** walkthrough (rebuild a Datadog/Dynatrace-style dashboard) is **rolled up at the bottom**—expand it only when you have time and a laptop with Cursor.
 
@@ -520,7 +520,7 @@ The entire process takes **60–120 seconds**.
 
 ### Step 6 — Open the new dashboard in Kibana
 
-Switch back to the **Elastic Serverless** tab. Click **Dashboards** in the left nav.
+Open the **Elastic Serverless** tab (first tab). Click **Dashboards** in the left nav.
 Your new dashboard appears at the top of the list.
 
 Set the time picker to **Last 2 hours** to see the generated data populate all panels.
