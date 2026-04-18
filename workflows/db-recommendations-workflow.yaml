@@ -8,6 +8,9 @@ description: |
   Kibana dashboard shows the latest text for that engine only.
 
   Legacy documents without **database_platform** still appear on the **Db2** dashboard.
+
+  After indexing, each run **updates the matching library Markdown saved object** (``dbmon-ai-rec-*``)
+  so database dashboards show fresh formatted text **without** re-running ``import_dashboards.py``.
 enabled: true
 tags:
   - database-monitoring
@@ -251,9 +254,89 @@ steps:
         database_platform: oracle
         recommendation: "{{ steps.agent_oracle.output.response.message }}"
 
+  # Refresh library Markdown (dashboard panels reference these saved objects by ref_id).
+  - name: publish_markdown_mysql
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/saved_objects/markdown/dbmon-ai-rec-mysql?overwrite=true
+      headers:
+        kbn-xsrf: "true"
+      body:
+        attributes:
+          title: "AI recommendations — mysql"
+          description: ""
+          content: "{{ steps.agent_mysql.output.response.message }}"
+
+  - name: publish_markdown_postgresql
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/saved_objects/markdown/dbmon-ai-rec-postgresql?overwrite=true
+      headers:
+        kbn-xsrf: "true"
+      body:
+        attributes:
+          title: "AI recommendations — postgresql"
+          description: ""
+          content: "{{ steps.agent_postgresql.output.response.message }}"
+
+  - name: publish_markdown_sqlserver
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/saved_objects/markdown/dbmon-ai-rec-sqlserver?overwrite=true
+      headers:
+        kbn-xsrf: "true"
+      body:
+        attributes:
+          title: "AI recommendations — sqlserver"
+          description: ""
+          content: "{{ steps.agent_sqlserver.output.response.message }}"
+
+  - name: publish_markdown_mongodb
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/saved_objects/markdown/dbmon-ai-rec-mongodb?overwrite=true
+      headers:
+        kbn-xsrf: "true"
+      body:
+        attributes:
+          title: "AI recommendations — mongodb"
+          description: ""
+          content: "{{ steps.agent_mongodb.output.response.message }}"
+
+  - name: publish_markdown_db2
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/saved_objects/markdown/dbmon-ai-rec-db2?overwrite=true
+      headers:
+        kbn-xsrf: "true"
+      body:
+        attributes:
+          title: "AI recommendations — db2"
+          description: ""
+          content: "{{ steps.agent_db2.output.response.message }}"
+
+  - name: publish_markdown_oracle
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/saved_objects/markdown/dbmon-ai-rec-oracle?overwrite=true
+      headers:
+        kbn-xsrf: "true"
+      body:
+        attributes:
+          title: "AI recommendations — oracle"
+          description: ""
+          content: "{{ steps.agent_oracle.output.response.message }}"
+
   - name: workflow-done
     type: console
     with:
       message: |
-        Indexed six recommendations (mysql, postgresql, sqlserver, mongodb, db2, oracle).
-        Open the matching **database monitoring** dashboard and check the **AI recommendations** table (widen the time picker if it is empty).
+        Indexed six recommendations (mysql, postgresql, sqlserver, mongodb, db2, oracle)
+        and refreshed the **dbmon-ai-rec-*** library Markdown objects used by the dashboards.
+        Open a database monitoring dashboard — **AI recommendations** should show formatted Markdown after a refresh.
