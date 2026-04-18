@@ -89,7 +89,7 @@ enhanced_loading: null
 ## Part 1 — Explore the pre-built dashboards
 
 Ten dashboards were deployed automatically when this track started (six database platforms plus SQL Server overview and three Spotlight-style views).
-Open **Elastic Serverless → Dashboards** and set the time picker to **Last 2 hours**.
+Open **Elastic Serverless → Dashboards**. For the metric walkthroughs below, set the time picker to **Last 2 hours** when you want a tight ops window; the six platform dashboards default to a **wider range** so **Latest AI recommendation** and **Stored recommendation runs** (index **db-monitoring-recommendations**, filtered by **`database_platform`**) stay visible. The workflow **Database Monitoring — AI recommendations** runs on a **10-minute schedule** and writes **six** recommendations per run (one per engine); you can also trigger it manually under **Management → Workflows**.
 
 ---
 
@@ -494,6 +494,10 @@ Once the dashboard looks right, add a threshold alert directly from Kibana:
 
 > This takes ~2 minutes. Datadog charges per alert rule per host. In Elastic, alerts
 > are unlimited and built on the same query engine as the dashboards.
+
+### Cross-project search and cases
+
+Pre-built alert rules can run the **Database Monitoring — Root Cause Analysis** workflow, which creates an **Observability case** with an AI investigation summary. After a case exists, you can **enrich** the investigation using Elastic **[Cross-project search](https://www.elastic.co/docs/explore-analyze/cross-project-search)** (technical preview): in the Elastic Cloud console, open your **Observability** Serverless project, go to **Cross-project search**, and **link** a **Security** Serverless project (or other projects you use). With projects linked, searches from Observability can span linked indices—so you can check for **security-relevant context** (for example detections or authentication anomalies) while triaging a database incident, without manually switching projects for every query.
 
 ---
 

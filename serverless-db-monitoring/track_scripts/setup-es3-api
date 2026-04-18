@@ -217,14 +217,14 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6b. Index for workflow “AI recommendations” (ES|QL panels on Db2 dashboard)
+# 6b. Index for workflow “AI recommendations” (ES|QL panels on MySQL/Postgres/SQL Server/MongoDB/Db2/Oracle dashboards)
 # ---------------------------------------------------------------------------
 if [ -n "${ES_URL:-}" ] && [ -n "${ELASTICSEARCH_PASSWORD:-}" ]; then
   echo "Ensuring Elasticsearch index db-monitoring-recommendations exists..."
   _rec_ix=$(curl -sS -o /tmp/rec-index-body.json -w "%{http_code}" -X PUT "${ES_URL}/db-monitoring-recommendations" \
     -u "admin:${ELASTICSEARCH_PASSWORD}" \
     -H "Content-Type: application/json" \
-    -d '{"mappings":{"properties":{"@timestamp":{"type":"date"},"execution_id":{"type":"keyword"},"workflow_name":{"type":"keyword"},"source":{"type":"keyword"},"recommendation":{"type":"text"}}}}')
+    -d '{"mappings":{"properties":{"@timestamp":{"type":"date"},"execution_id":{"type":"keyword"},"workflow_name":{"type":"keyword"},"source":{"type":"keyword"},"database_platform":{"type":"keyword"},"recommendation":{"type":"text"}}}}')
   echo "DEBUG: PUT db-monitoring-recommendations HTTP ${_rec_ix}"
 fi
 
@@ -258,7 +258,7 @@ if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
   echo "$deploy_out" | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log
   if [ "$_dash_rc" -ne 0 ] || ! echo "$deploy_out" | grep -q "All dashboards created successfully"; then
     echo "ERROR: Dashboard deployment failed (exit ${_dash_rc}). See /tmp/db-monitoring-logs/dashboard-deploy.log" >&2
-    echo "Common cause: Kibana rejected Elastic-Api-Version — import_dashboards.py must send a calendar version (2023-10-31)." >&2
+    echo "Common causes: Elastic-Api-Version (use 2023-10-31), or Kibana 9.4+ panel schema (panels must be type vis, not lens)." >&2
     exit 1
   fi
   echo "✓ All dashboards deployed"

@@ -65,7 +65,7 @@ dbmonitoring/
 ├── workflows/
 │   ├── rca-workflow.yaml         # AI-powered Root Cause Analysis workflow
 │   ├── db-slo-workflow.yaml      # Idempotent SLO management workflow (runs every 24h)
-│   └── db-recommendations-workflow.yaml  # Agent → index db-monitoring-recommendations (Db2 dashboard)
+│   └── db-recommendations-workflow.yaml  # Agent → index db-monitoring-recommendations (per-DB dashboards)
 ├── assets/
 │   ├── sample-dashboards/        # Datadog/Dynatrace prompt examples + screenshots
 │   └── spotlight-otel-gaps.md    # Spotlight vs OpenTelemetry coverage (PaaS, OS, logs)
@@ -167,6 +167,8 @@ dbmonitoring/
 
 All rules are deployed by `alert-rules/deploy-alert-rules.py` and wired to the AI RCA workflow.
 
+When the RCA workflow opens an **Observability case**, analysts can go further in Kibana by searching across linked Serverless projects. **[Cross-project search](https://www.elastic.co/docs/explore-analyze/cross-project-search)** (Elastic Cloud → your Observability project → **Cross-project search**) lets you link another project—such as a **Serverless Security** project—so Discover, ES\|QL, and investigations can include security signals while you work the case. That is useful when you want to correlate a database alert with **potential security issues** (failed logins, detections, endpoint events) that live in Security rather than Observability.
+
 ---
 
 ## SLOs (managed by workflow)
@@ -183,12 +185,12 @@ All rules are deployed by `alert-rules/deploy-alert-rules.py` and wired to the A
 
 The SLO workflow (`db-slo-workflow.yaml`) is idempotent and runs every 24h automatically.
 
-### AI recommendations → Elasticsearch → Db2 dashboard
+### AI recommendations → Elasticsearch → database dashboards
 
-The workflow **`workflows/db-recommendations-workflow.yaml`** (deployed with the alert script) calls **`observability.agent`** with a Db2-focused prompt, then indexes the markdown answer into Elasticsearch index **`db-monitoring-recommendations`** using the **`elasticsearch.request`** step.
+The workflow **`workflows/db-recommendations-workflow.yaml`** (deployed with the alert script) runs on a **10-minute schedule** (and supports a **manual** run). Each execution calls **`observability.agent`** six times—once per engine (MySQL, PostgreSQL, SQL Server, MongoDB, Db2, Oracle)—with an engine-specific improvement prompt, then indexes each markdown answer into **`db-monitoring-recommendations`** with **`database_platform`** set so only the matching dashboard shows that text.
 
-1. In Kibana go to **Management → Workflows**, open **Database Monitoring — AI recommendations**, and **Run** it (manual trigger).
-2. Open the **IBM Db2 — Performance & Health (LUW)** dashboard: panels **Latest AI recommendation** and **Stored recommendation runs** read from that index (dashboard time range is **last 90 days** so older runs stay visible).
+1. Ensure the workflow is **enabled** in Kibana (**Management → Workflows** → **Database Monitoring — AI recommendations**). New lab projects pick it up from `deploy-alert-rules.py`; the first scheduled tick may take up to 10 minutes.
+2. Open the **MySQL**, **PostgreSQL**, **SQL Server**, **MongoDB**, **IBM Db2**, or **Oracle** performance dashboard: the bottom row **Latest AI recommendation** / **Stored recommendation runs** filter on **`database_platform`**. Dashboards default to **last 90 days** (narrow the time picker for a shorter ops window). Older rows without **`database_platform`** still match the **Db2** dashboard only.
 
 The track bootstrap **creates the index** with mappings before dashboards deploy. Requires **Elastic Workflows** with Elasticsearch action steps (Serverless preview / Stack 9.3+ per Elastic docs).
 

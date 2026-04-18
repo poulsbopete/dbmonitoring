@@ -454,7 +454,7 @@ if __name__ == "__main__":
         print(f"  → Trigger once to seed the 7 DB SLOs, then runs every 24 h automatically.")
     if rec_wf_id:
         print(f"✓ AI recommendations: {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{rec_wf_id}")
-        print(f"  → Run manually to append a row to db-monitoring-recommendations (shown on Db2 dashboard).")
+        print(f"  → Runs every 10 min + manual: indexes six docs (mysql..oracle) into db-monitoring-recommendations.")
     if wf_id:
         print("""
 ┌─ Wire RCA workflow to each rule in the UI ──────────────────────────────┐

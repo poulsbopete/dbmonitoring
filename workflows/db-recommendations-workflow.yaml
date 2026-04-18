@@ -1,18 +1,28 @@
 version: "1"
 name: Database Monitoring — AI recommendations 📝
 description: |
-  Calls the Observability AI agent with a Db2-focused operations prompt, then stores
-  the markdown answer in Elasticsearch index db-monitoring-recommendations so the
-  IBM Db2 dashboard can show the latest text alongside metrics.
+  Every **10 minutes** (and on manual run), calls the Observability AI agent once per
+  database engine (MySQL, PostgreSQL, SQL Server, MongoDB, Db2, Oracle) with an
+  engine-specific improvement prompt, then indexes each markdown answer into
+  **db-monitoring-recommendations** with **database_platform** set so the matching
+  Kibana dashboard shows the latest text for that engine only.
 
-  Trigger manually from Kibana (Management → Workflows). Each run appends one document.
+  Legacy documents without **database_platform** still appear on the **Db2** dashboard.
 enabled: true
 tags:
   - database-monitoring
+  - mysql
+  - postgresql
+  - sqlserver
+  - mongodb
   - db2
+  - oracle
   - ai
   - DEMO
 triggers:
+  - type: scheduled
+    with:
+      every: "10m"
   - type: manual
 
 steps:
@@ -21,8 +31,155 @@ steps:
     with:
       message: |
         AI recommendations workflow started (execution {{ execution.id }}).
+        Six engine-specific recommendations will be generated and indexed.
 
-  - name: agent_recommend
+  - name: agent_mysql
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/agent_builder/converse
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        input: |
+          You are a senior database reliability engineer. The customer monitors **MySQL**
+          in Elastic Observability via OpenTelemetry. Relevant data streams include
+          **logs-mysql.slowlog.otel.otel-default** (slow queries: mysql.slowlog.query_time,
+          lock_time, db.name, db.sql.table) and **logs-mysql.error.otel.otel-default**
+          (log.level, error patterns).
+
+          Produce **concise, actionable improvement recommendations** (markdown, max ~35 lines):
+          1. What to tune or watch first on a MySQL health / slow-query dashboard (3–5 bullets).
+          2. Thresholds or patterns tied to slow queries, lock time, and errors.
+          3. When to escalate (e.g. sustained slow queries, error spikes).
+          4. One short paragraph on OTel + Elastic vs agent-only DBM for MySQL.
+
+          Keep advice generic; do not invent customer host names.
+
+  - name: index_mysql
+    type: elasticsearch.request
+    with:
+      method: POST
+      path: /db-monitoring-recommendations/_doc
+      body:
+        "@timestamp": "{{ execution.startedAt }}"
+        execution_id: "{{ execution.id }}"
+        workflow_name: "{{ workflow.name }}"
+        source: workflow_ai_recommendations
+        database_platform: mysql
+        recommendation: "{{ steps.agent_mysql.output.response.message }}"
+
+  - name: agent_postgresql
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/agent_builder/converse
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        input: |
+          You are a senior database reliability engineer. The customer monitors **PostgreSQL**
+          in Elastic Observability. Synthetic metrics land in
+          **metrics-postgresqlreceiver.otel.otel-default** (postgresql.backends,
+          postgresql.deadlocks, postgresql.db_size, postgresql.tup_* , postgresql.database.name).
+
+          Produce **concise, actionable improvement recommendations** (markdown, max ~35 lines):
+          1. What to watch first on a PostgreSQL capacity / health dashboard (3–5 bullets).
+          2. Early warning patterns (connections, deadlocks, growth).
+          3. When to escalate.
+          4. One short paragraph on OpenTelemetry metrics + Elastic vs JDBC-only monitoring.
+
+          Keep advice generic; do not invent customer host names.
+
+  - name: index_postgresql
+    type: elasticsearch.request
+    with:
+      method: POST
+      path: /db-monitoring-recommendations/_doc
+      body:
+        "@timestamp": "{{ execution.startedAt }}"
+        execution_id: "{{ execution.id }}"
+        workflow_name: "{{ workflow.name }}"
+        source: workflow_ai_recommendations
+        database_platform: postgresql
+        recommendation: "{{ steps.agent_postgresql.output.response.message }}"
+
+  - name: agent_sqlserver
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/agent_builder/converse
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        input: |
+          You are a senior database reliability engineer. The customer monitors **Microsoft SQL Server**
+          in Elastic Observability. Metrics land in **metrics-sqlserverreceiver.otel.otel-default**
+          (sqlserver.user.connection.count, sqlserver.lock.wait_time.avg,
+          sqlserver.page.buffer_cache.hit_ratio, sqlserver.database.io.*, sqlserver.deadlock.count,
+          batch_sql_request.count).
+
+          Produce **concise, actionable improvement recommendations** (markdown, max ~35 lines):
+          1. What to watch first on a SQL Server performance dashboard (3–5 bullets).
+          2. Patterns for memory pressure, lock waits, and I/O latency.
+          3. When to escalate.
+          4. One short paragraph on OTel + Elastic vs proprietary SQL Server-only agents.
+
+          Keep advice generic; do not invent customer host names.
+
+  - name: index_sqlserver
+    type: elasticsearch.request
+    with:
+      method: POST
+      path: /db-monitoring-recommendations/_doc
+      body:
+        "@timestamp": "{{ execution.startedAt }}"
+        execution_id: "{{ execution.id }}"
+        workflow_name: "{{ workflow.name }}"
+        source: workflow_ai_recommendations
+        database_platform: sqlserver
+        recommendation: "{{ steps.agent_sqlserver.output.response.message }}"
+
+  - name: agent_mongodb
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/agent_builder/converse
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        input: |
+          You are a senior database reliability engineer. The customer monitors **MongoDB**
+          in Elastic Observability. Metrics land in **metrics-mongodbatlas.otel.otel-default**
+          (mongodb.connection.count, mongodb.memory.*, mongodb.operation.*,
+          mongodb.replication.lag, mongodb.document.operation.count).
+
+          Produce **concise, actionable improvement recommendations** (markdown, max ~35 lines):
+          1. What to watch first on a MongoDB operations / health dashboard (3–5 bullets).
+          2. Patterns for memory, replication lag, and operation mix.
+          3. When to escalate.
+          4. One short paragraph on OTel + Elastic vs Atlas-only tooling.
+
+          Keep advice generic; do not invent customer host names.
+
+  - name: index_mongodb
+    type: elasticsearch.request
+    with:
+      method: POST
+      path: /db-monitoring-recommendations/_doc
+      body:
+        "@timestamp": "{{ execution.startedAt }}"
+        execution_id: "{{ execution.id }}"
+        workflow_name: "{{ workflow.name }}"
+        source: workflow_ai_recommendations
+        database_platform: mongodb
+        recommendation: "{{ steps.agent_mongodb.output.response.message }}"
+
+  - name: agent_db2
     type: kibana.request
     with:
       method: POST
@@ -33,21 +190,19 @@ steps:
         agent_id: observability.agent
         input: |
           You are a senior database reliability engineer. The customer runs **IBM Db2 LUW**
-          alongside other databases in Elastic Observability. Synthetic OpenTelemetry metrics
-          land in index **metrics-db2receiver.otel.otel-default** (fields such as
-          db2.connection.active, db2.bufferpool.hit_ratio, db2.log.utilization,
-          db2.lock.wait_time.avg, db2.tablespace.used, db2.deadlock.count).
+          in Elastic Observability. Synthetic OpenTelemetry metrics land in
+          **metrics-db2receiver.otel.otel-default** (db2.connection.active, db2.bufferpool.hit_ratio,
+          db2.log.utilization, db2.lock.wait_time.avg, db2.tablespace.used, db2.deadlock.count).
 
-          Produce **concise, actionable recommendations** (markdown, max ~40 lines):
+          Produce **concise, actionable improvement recommendations** (markdown, max ~35 lines):
           1. What to watch first on a Db2 health dashboard (3–5 bullets).
-          2. Early warning thresholds or patterns tied to the metrics above.
-          3. When to escalate (e.g. log utilization, lock waits, buffer pool hit ratio).
-          4. One paragraph on how OpenTelemetry + Elastic compares to JDBC/Logstash-only
-             collection for older Db2 versions.
+          2. Early warning thresholds tied to the metrics above.
+          3. When to escalate (log utilization, lock waits, buffer pool hit ratio).
+          4. One paragraph on OpenTelemetry + Elastic vs JDBC/Logstash-only collection for older Db2.
 
-          Do not fabricate customer-specific host names; keep advice generic and practical.
+          Keep advice generic; do not invent customer host names.
 
-  - name: index_recommendation
+  - name: index_db2
     type: elasticsearch.request
     with:
       method: POST
@@ -57,11 +212,48 @@ steps:
         execution_id: "{{ execution.id }}"
         workflow_name: "{{ workflow.name }}"
         source: workflow_ai_recommendations
-        recommendation: "{{ steps.agent_recommend.output.response.message }}"
+        database_platform: db2
+        recommendation: "{{ steps.agent_db2.output.response.message }}"
+
+  - name: agent_oracle
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/agent_builder/converse
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        input: |
+          You are a senior database reliability engineer. The customer monitors **Oracle**
+          in Elastic Observability. Metrics land in **metrics-oracledbreceiver.otel.otel-default**
+          (oracledb.sessions.current, session.type, oracledb.tablespace.*, oracledb.physical_reads,
+          oracledb.logical_reads, oracledb.hard_parses, oracledb.parse_calls, oracledb.pga_memory).
+
+          Produce **concise, actionable improvement recommendations** (markdown, max ~35 lines):
+          1. What to watch first on an Oracle performance dashboard (3–5 bullets).
+          2. Patterns for sessions, tablespace, parse pressure, and PGA.
+          3. When to escalate.
+          4. One short paragraph on OTel + Elastic vs OEM-only approaches.
+
+          Keep advice generic; do not invent customer host names.
+
+  - name: index_oracle
+    type: elasticsearch.request
+    with:
+      method: POST
+      path: /db-monitoring-recommendations/_doc
+      body:
+        "@timestamp": "{{ execution.startedAt }}"
+        execution_id: "{{ execution.id }}"
+        workflow_name: "{{ workflow.name }}"
+        source: workflow_ai_recommendations
+        database_platform: oracle
+        recommendation: "{{ steps.agent_oracle.output.response.message }}"
 
   - name: workflow-done
     type: console
     with:
       message: |
-        Recommendation indexed. Open the **IBM Db2 — Performance & Health (LUW)** dashboard
-        (time range includes last 90 days) to see **Latest AI recommendation** and **Stored runs**.
+        Indexed six recommendations (mysql, postgresql, sqlserver, mongodb, db2, oracle).
+        Open the matching **database monitoring** dashboard (90-day default) for **Latest AI recommendation**.

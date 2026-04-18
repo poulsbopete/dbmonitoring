@@ -1,14 +1,14 @@
 ---
-description: Use Elastic kibana-dashboards skill and Kibana Dashboards API for dashboards/Lens
+description: Use Elastic kibana-dashboards skill and Kibana Dashboards API for dashboards (inline vis panels)
 globs: scripts/import_dashboards.py,scripts/kibana-dashboards.js,tools/deploy_dashboards.py
 alwaysApply: false
 ---
 
-# Kibana dashboards and Lens
+# Kibana dashboards and inline charts
 
-When adding or changing Kibana dashboards or Lens visualizations in this repo:
+When adding or changing Kibana dashboards in this repo:
 
-1. **Follow the Elastic agent skill** `kibana-dashboards` (declarative Lens + Dashboards API). Prefer inline `config.attributes` on dashboard panels over `savedObjectId` references.
+1. **Follow the Elastic agent skill** `kibana-dashboards` (Kibana **9.4+** declarative charts + Dashboards API). Inline panels use **`type: "vis"`** with a **flat** `config` (chart `type`, `data_source`, layers, etc.). Do **not** use **`type: "lens"`** with `config.attributes` on `POST /api/dashboards`—Serverless rejects `lens` for inline panels. Prefer inline panels over `savedObjectId` references where practical.
 2. **Use the Dashboards API** for whole dashboards: `POST /api/dashboards` with header `Elastic-Api-Version: 2023-10-31` (calendar version; **not** literal `1` on current Serverless). Override via env `KIBANA_ELASTIC_API_VERSION` if Elastic documents a newer default. Standard Kibana auth headers apply. Do not use `POST /api/saved_objects/dashboard` for new lab deploys unless the Dashboards API is unavailable.
 3. **Standalone Lens** (if needed): `POST /api/visualizations?apiVersion=1` with the same `Elastic-Api-Version` as dashboards—not `saved_objects/lens`.
 4. **ES|QL time series**: use auto buckets `BUCKET(@timestamp, 75, ?_tstart, ?_tend)` in queries unless a fixed interval is required for teaching.

@@ -4,6 +4,8 @@ description: >
   AI-powered Root Cause Analysis workflow for database monitoring alerts.
   Investigates MySQL, PostgreSQL, SQL Server, MongoDB, IBM Db2, and Oracle anomalies using the
   Observability AI Agent, then creates a case with a full investigation summary.
+  Optional follow-up: in Serverless, link a Security project via Cross-project search so analysts
+  can query security signals while enriching the same case in Observability.
 enabled: true
 tags:
   - RCA

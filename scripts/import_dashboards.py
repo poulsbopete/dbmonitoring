@@ -2,7 +2,7 @@
 """
 Import DB monitoring dashboards into Kibana via the Dashboards API (Kibana 9.4+).
 
-Uses POST /api/dashboards with inline Lens config.attributes (declarative ES|QL charts).
+Uses POST /api/dashboards with inline type \"vis\" panels and declarative ES|QL (Kibana 9.4+ schema).
 Aligns with the Elastic **kibana-dashboards** agent skill and Dashboard / Visualizations API.
 
 Usage:  python3 scripts/import_dashboards.py
@@ -39,6 +39,9 @@ HEADERS = {
 # ES|QL time buckets that scale with the dashboard time range (kibana-dashboards skill).
 TB_AUTO = "BUCKET(@timestamp, 75, ?_tstart, ?_tend)"
 
+# Workflow `db-recommendations-workflow.yaml` writes markdown rows here (see README).
+REC_INDEX = "db-monitoring-recommendations"
+
 
 def gid():
     return str(uuid.uuid4())
@@ -73,12 +76,13 @@ def create_dashboard_api(title, description, panels, time_from="now-2h", time_to
     return result["id"]
 
 
-def lens_panel(uid, x, y, w, h, attributes):
+def vis_panel(panel_id, x, y, w, h, config):
+    """Kibana 9.4+ Dashboards API: panels use type \"vis\" with flat chart config (not lens + attributes)."""
     return {
-        "type": "lens",
-        "uid": uid,
+        "type": "vis",
+        "id": panel_id,
         "grid": {"x": x, "y": y, "w": w, "h": h},
-        "config": {"attributes": attributes},
+        "config": config,
     }
 
 
@@ -86,32 +90,43 @@ def viz_metric(title, esql, column):
     return {
         "type": "metric",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "metrics": [{"type": "primary", "operation": "value", "column": column}],
+        "data_source": {"type": "esql", "query": esql},
+        "metrics": [{"type": "primary", "column": column, "label": column}],
     }
 
 
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
+    temporal = x_col == "bucket" or "BUCKET(" in x_col
     layer = {
         "type": layer_type,
-        "dataset": {"type": "esql", "query": esql},
-        "x": {"operation": "value", "column": x_col},
-        "y": [{"operation": "value", "column": c} for c in y_cols],
+        "data_source": {"type": "esql", "query": esql},
+        "x": {"column": x_col, "label": "@timestamp" if temporal else x_col},
+        "y": [{"column": c} for c in y_cols],
     }
     if breakdown_col:
-        layer["breakdown_by"] = {"operation": "value", "column": breakdown_col}
-    return {"type": "xy", "title": title, "layers": [layer]}
+        layer["breakdown_by"] = {"column": breakdown_col}
+    cfg = {"type": "xy", "title": title, "layers": [layer]}
+    if temporal:
+        cfg["axis"] = {
+            "x": {
+                "title": {"visible": False},
+                "scale": "temporal",
+                "domain": {"type": "fit", "rounding": False},
+            },
+            "y": {"anchor": "start", "title": {"visible": False}},
+        }
+    return cfg
 
 
 def viz_heatmap(title, esql, x_col, y_col, value_col):
-    """Declarative Lens heat map (not accepted by Elastic Serverless POST /api/dashboards as of 9.4)."""
+    """Heat map (inline vis schema for Kibana 9.4+)."""
     return {
         "type": "heatmap",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "xAxis": {"operation": "value", "column": x_col},
-        "yAxis": {"operation": "value", "column": y_col},
-        "metric": {"operation": "value", "column": value_col},
+        "data_source": {"type": "esql", "query": esql},
+        "x": {"column": x_col},
+        "y": {"column": y_col},
+        "metric": {"column": value_col},
     }
 
 
@@ -119,18 +134,18 @@ def viz_gauge(title, esql, column):
     return {
         "type": "gauge",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "metric": {"operation": "value", "column": column},
+        "data_source": {"type": "esql", "query": esql},
+        "metric": {"column": column},
     }
 
 
 def viz_datatable(title, esql, metric_columns, row_columns):
     return {
-        "type": "datatable",
+        "type": "data_table",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "metrics": [{"operation": "value", "column": c} for c in metric_columns],
-        "rows": [{"operation": "value", "column": c} for c in row_columns],
+        "data_source": {"type": "esql", "query": esql},
+        "metrics": [{"column": c} for c in metric_columns],
+        "rows": [{"column": c} for c in row_columns],
     }
 
 
@@ -139,19 +154,47 @@ def viz_treemap(title, esql, metric_column, group_by_columns):
     return {
         "type": "treemap",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "metrics": [{"operation": "value", "column": metric_column}],
-        "group_by": [{"operation": "value", "column": c} for c in group_by_columns],
+        "data_source": {"type": "esql", "query": esql},
+        "metrics": [{"column": metric_column}],
+        "group_by": [{"column": c} for c in group_by_columns],
     }
 
 
-def P(box, title, attrs):
-    """One lens panel: (x,y,w,h), panel/chart title, declarative Lens attributes dict."""
+def P(box, title, chart_config):
+    """One dashboard panel: (x,y,w,h), optional title override, flat vis chart config dict."""
     x, y, w, h = box
-    a = dict(attrs)
+    cfg = dict(chart_config)
     if title is not None:
-        a.setdefault("title", title)
-    return lens_panel(gid(), x, y, w, h, a)
+        cfg.setdefault("title", title)
+    return vis_panel(gid(), x, y, w, h, cfg)
+
+
+def _rec_platform_where(platform_key: str, include_legacy_null: bool) -> str:
+    """ES|QL WHERE clause: filter recommendations index by workflow field database_platform."""
+    if include_legacy_null:
+        return f'(database_platform == "{platform_key}" OR database_platform IS NULL)'
+    return f'database_platform == "{platform_key}"'
+
+
+def ai_recommendation_panels(y_row, platform_key: str, include_legacy_null: bool = False):
+    """Latest workflow output + run count for one engine (workflow sets database_platform)."""
+    w = _rec_platform_where(platform_key, include_legacy_null)
+    return [
+        P((0, y_row, 36, 8), "Latest AI recommendation", viz_metric(
+            "Runs every 10 min via workflow \u201cDatabase Monitoring \u2014 AI recommendations\u201d; "
+            "or trigger manually under Management \u2192 Workflows.",
+            f"FROM {REC_INDEX} | WHERE {w} | SORT @timestamp DESC | LIMIT 1 "
+            "| STATS `Latest` = SUBSTRING(TO_STRING(recommendation), 0, 500)",
+            "Latest")),
+        P((36, y_row, 12, 8), "Stored recommendation runs", viz_metric(
+            "",
+            f"FROM {REC_INDEX} | WHERE {w} | STATS `Stored runs` = COUNT(*)",
+            "Stored runs")),
+    ]
+
+
+# Default time range when a dashboard includes AI panels (workflow runs may be days apart).
+TIME_RANGE_AI = ("now-90d", "now")
 
 
 # ---------------------------------------------------------------------------
@@ -194,12 +237,15 @@ def build_mysql():
             "Error Log Trend",
             f"FROM logs-mysql.error.otel.otel-default | STATS count = COUNT(*) BY bucket = {TB}, `log.level`",
             "bar_stacked", "bucket", ["count"], "log.level")),
+        *ai_recommendation_panels(38, "mysql"),
     ]
     return create_dashboard_api(
         "MySQL \u2014 Slow Query & Error Monitoring",
-        "Slow queries, lock contention, error trends, and top tables via OpenTelemetry",
+        "Slow queries, lock contention, error trends, top tables, and AI workflow output (index "
+        f"{REC_INDEX}) via OpenTelemetry",
         panels,
-        time_from="now-4d",
+        time_from=TIME_RANGE_AI[0],
+        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -235,11 +281,15 @@ def build_postgres():
             "Rows Inserted / Updated / Deleted",
             f"FROM metrics-postgresqlreceiver.otel.otel-default | EVAL _ins = TO_DOUBLE(`postgresql.tup_inserted`), _upd = TO_DOUBLE(`postgresql.tup_updated`), _del = TO_DOUBLE(`postgresql.tup_deleted`) | STATS inserted = MAX(_ins), updated = MAX(_upd), deleted = MAX(_del) BY bucket = {TB}",
             "line", "bucket", ["inserted", "updated", "deleted"])),
+        *ai_recommendation_panels(27, "postgresql"),
     ]
     return create_dashboard_api(
         "PostgreSQL \u2014 Performance & Health",
-        "Connections, deadlocks, database size, and row operations via OpenTelemetry",
+        "Connections, deadlocks, database size, row operations, and AI workflow output (index "
+        f"{REC_INDEX}) via OpenTelemetry",
         panels,
+        time_from=TIME_RANGE_AI[0],
+        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -275,11 +325,15 @@ def build_mssql():
             "Batch Requests Over Time",
             f"FROM metrics-sqlserverreceiver.otel.otel-default | EVAL _b = TO_DOUBLE(`sqlserver.batch_sql_request.count`) | STATS batches = MAX(_b) BY bucket = {TB}, `service.name`",
             "line", "bucket", ["batches"], "service.name")),
+        *ai_recommendation_panels(27, "sqlserver"),
     ]
     return create_dashboard_api(
         "SQL Server \u2014 Performance & Health",
-        "Connections, lock waits, batch requests, buffer cache, and I/O latency via OpenTelemetry",
+        "Connections, lock waits, batch requests, buffer cache, I/O latency, and AI workflow output (index "
+        f"{REC_INDEX}) via OpenTelemetry",
         panels,
+        time_from=TIME_RANGE_AI[0],
+        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -371,11 +425,15 @@ def build_mongodb():
             "Document Operations Over Time",
             f"FROM metrics-mongodbatlas.otel.otel-default | EVAL _docs = TO_DOUBLE(`mongodb.document.operation.count`) | STATS docs = MAX(_docs) BY bucket = {TB}, `mongodb.operation.type` | WHERE `mongodb.operation.type` IS NOT NULL",
             "line", "bucket", ["docs"], "mongodb.operation.type")),
+        *ai_recommendation_panels(27, "mongodb"),
     ]
     return create_dashboard_api(
         "MongoDB \u2014 Operations & Health",
-        "Operation throughput, connections, memory, replication lag, and document stats via OpenTelemetry",
+        "Operation throughput, connections, memory, replication lag, document stats, and AI workflow output (index "
+        f"{REC_INDEX}) via OpenTelemetry",
         panels,
+        time_from=TIME_RANGE_AI[0],
+        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -571,7 +629,6 @@ def build_spotlight_sql_overview():
 def build_db2():
     print("  Building IBM Db2 dashboard (Dashboards API)...")
     IDX = "metrics-db2receiver.otel.otel-default"
-    REC = "db-monitoring-recommendations"
     TB = TB_AUTO
     panels = [
         P((0, 0, 12, 5), "Active connections", viz_metric(
@@ -610,23 +667,15 @@ def build_db2():
             "Transaction log utilization %",
             f"FROM {IDX} | STATS log_pct = AVG(`db2.log.utilization`) BY bucket = {TB}, `host.name`",
             "area", "bucket", ["log_pct"], "host.name")),
-        P((0, 37, 36, 8), "Latest AI recommendation", viz_metric(
-            "Run workflow \u201cDatabase Monitoring \u2014 AI recommendations\u201d (Management \u2192 Workflows) to populate",
-            f"FROM {REC} | SORT @timestamp DESC | LIMIT 1 "
-            f"| STATS `Latest` = SUBSTRING(TO_STRING(recommendation), 0, 500)",
-            "Latest")),
-        P((36, 37, 12, 8), "Stored recommendation runs", viz_metric(
-            "",
-            f"FROM {REC} | STATS `Stored runs` = COUNT(*)",
-            "Stored runs")),
+        *ai_recommendation_panels(37, "db2", include_legacy_null=True),
     ]
     return create_dashboard_api(
         "IBM Db2 \u2014 Performance & Health (LUW)",
         "Connections, buffer pool, log utilization, lock waits, tablespaces, and sort health via synthetic OpenTelemetry db2.* metrics. "
-        "Latest AI text is read from index db-monitoring-recommendations (written by the AI recommendations workflow).",
+        f"Latest AI text is read from index {REC_INDEX} (written by the AI recommendations workflow).",
         panels,
-        time_from="now-90d",
-        time_to="now",
+        time_from=TIME_RANGE_AI[0],
+        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -670,11 +719,15 @@ def build_oracle():
             "PGA Memory (GB) Over Time",
             f"FROM {IDX} | STATS pga_gb = ROUND(AVG(`oracledb.pga_memory`) / 1073741824.0, 2) BY bucket = {TB}, `service.name`",
             "line", "bucket", ["pga_gb"], "service.name")),
+        *ai_recommendation_panels(38, "oracle"),
     ]
     return create_dashboard_api(
         "Oracle \u2014 Performance & Health",
-        "Sessions, tablespace utilisation, parse efficiency, reads, transactions and PGA memory via OpenTelemetry",
+        "Sessions, tablespace utilisation, parse efficiency, reads, transactions, PGA memory, and AI workflow output (index "
+        f"{REC_INDEX}) via OpenTelemetry",
         panels,
+        time_from=TIME_RANGE_AI[0],
+        time_to=TIME_RANGE_AI[1],
     )
 
 

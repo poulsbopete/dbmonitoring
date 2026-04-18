@@ -21,6 +21,7 @@ description: |
   - **MongoDB, Db2, and Oracle** are first-class (limited or paid add-ons in competitors)
   - **Unlimited custom dashboards** via Lens + ES|QL
   - **AI-assisted dashboard building** with Cursor + Elastic Agent Skills in under 2 minutes
+  - **Cross-project search** — link a Serverless Security project to enrich Observability cases with security context
   - **Open standards** — no vendor lock-in, data sovereignty
 
   The sandbox is a single **elastic/es3-api-v2** host that creates a fresh Observability
