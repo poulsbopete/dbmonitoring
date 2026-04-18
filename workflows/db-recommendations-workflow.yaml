@@ -256,4 +256,4 @@ steps:
     with:
       message: |
         Indexed six recommendations (mysql, postgresql, sqlserver, mongodb, db2, oracle).
-        Open the matching **database monitoring** dashboard (90-day default) for **Latest AI recommendation**.
+        Open the matching **database monitoring** dashboard and check the **AI recommendations** table (widen the time picker if it is empty).

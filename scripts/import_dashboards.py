@@ -128,16 +128,6 @@ def vis_panel(panel_id, x, y, w, h, config):
     }
 
 
-def markdown_panel(panel_id, x, y, w, h, content: str):
-    """Static markdown strip (Dashboards API expects type \"markdown\", not DASHBOARD_MARKDOWN)."""
-    return {
-        "type": "markdown",
-        "id": panel_id,
-        "grid": {"x": x, "y": y, "w": w, "h": h},
-        "config": {"content": content},
-    }
-
-
 def viz_metric(title, esql, column):
     return {
         "type": "metric",
@@ -222,12 +212,6 @@ def P(box, title, chart_config):
     return vis_panel(gid(), x, y, w, h, cfg)
 
 
-def P_md(box, markdown: str):
-    """Markdown-only panel (no ES|QL)."""
-    x, y, w, h = box
-    return markdown_panel(gid(), x, y, w, h, markdown)
-
-
 def _rec_platform_where(platform_key: str, include_legacy_null: bool) -> str:
     """ES|QL WHERE clause: filter recommendations index by workflow field database_platform."""
     if include_legacy_null:
@@ -236,33 +220,19 @@ def _rec_platform_where(platform_key: str, include_legacy_null: bool) -> str:
 
 
 def ai_recommendation_panels(y_row, platform_key: str, include_legacy_null: bool = False):
-    """Banner + readable table + run count (metric tiles truncate markdown)."""
+    """Single full-width table: latest markdown text only (no timestamps or run counts)."""
     w = _rec_platform_where(platform_key, include_legacy_null)
-    q_table = (
+    q = (
         f"FROM {REC_INDEX} | WHERE {w} | SORT @timestamp DESC | LIMIT 1 "
-        "| EVAL __row = 1 "
-        "| STATS `Run at` = MAX(@timestamp), `Recommendation` = SUBSTRING(TO_STRING(MAX(`recommendation`)), 0, 8000) "
-        "BY __row"
+        "| STATS `Recommendation` = SUBSTRING(TO_STRING(MAX(`recommendation`)), 0, 12000)"
     )
-    ribbon = (
-        "## AI recommendations\n\n"
-        "Workflow **Database Monitoring \u2014 AI recommendations** (every **10 min** + manual) writes markdown into "
-        f"**{REC_INDEX}** for this engine. If **Recommendation** is empty but **Stored runs** is not, widen the "
-        "**time picker** (\u201cLast 1 minute\u201d often excludes the last workflow tick)."
-    )
-    y0 = y_row
     return [
-        P_md((0, y0, 48, 4), ribbon),
-        P((0, y0 + 4, 36, 12), "Latest recommendation", viz_datatable(
-            "Latest recommendation",
-            q_table,
-            ["Run at", "Recommendation"],
-            ["__row"],
+        P((0, y_row, 48, 12), "AI recommendations", viz_datatable(
+            "AI recommendations",
+            q,
+            ["Recommendation"],
+            [],
         )),
-        P((36, y0 + 4, 12, 12), "Stored recommendation runs", viz_metric(
-            "",
-            f"FROM {REC_INDEX} | WHERE {w} | STATS `Stored runs` = COUNT(*)",
-            "Stored runs")),
     ]
 
 
