@@ -189,7 +189,7 @@ def ai_recommendation_panels(y_row, platform_key: str, include_legacy_null: bool
             "Runs every 10 min via workflow \u201cDatabase Monitoring \u2014 AI recommendations\u201d; "
             "or trigger manually under Management \u2192 Workflows.",
             f"FROM {REC_INDEX} | WHERE {w} | SORT @timestamp DESC | LIMIT 1 "
-            "| STATS `Latest` = SUBSTRING(TO_STRING(recommendation), 0, 500)",
+            "| STATS `Latest` = SUBSTRING(TO_STRING(MAX(`recommendation`)), 0, 500)",
             "Latest")),
         P((36, y_row, 12, 8), "Stored recommendation runs", viz_metric(
             "",
