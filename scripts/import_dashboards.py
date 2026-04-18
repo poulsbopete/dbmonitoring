@@ -129,9 +129,9 @@ def vis_panel(panel_id, x, y, w, h, config):
 
 
 def markdown_panel(panel_id, x, y, w, h, content: str):
-    """Static markdown strip (Kibana embeddable type DASHBOARD_MARKDOWN)."""
+    """Static markdown strip (Dashboards API expects type \"markdown\", not DASHBOARD_MARKDOWN)."""
     return {
-        "type": "DASHBOARD_MARKDOWN",
+        "type": "markdown",
         "id": panel_id,
         "grid": {"x": x, "y": y, "w": w, "h": h},
         "config": {"content": content},
