@@ -67,7 +67,7 @@ tabs:
   title: Elastic Serverless
   type: service
   hostname: es3-api
-  path: /app/dashboards#/list?_g=(filters:!(),refreshInterval:(pause:!f,value:30000),time:(from:now-7d,to:now))
+  path: /app/dashboards#/list?_g=(filters:!(),refreshInterval:(pause:!f,value:30000),time:(from:now-1m,to:now))
   port: 8080
   custom_request_headers:
   - key: Content-Security-Policy
@@ -89,7 +89,7 @@ enhanced_loading: null
 ## Part 1 — Explore the pre-built dashboards
 
 Ten dashboards were deployed automatically when this track started (six database platforms plus SQL Server overview and three Spotlight-style views).
-Open **Elastic Serverless → Dashboards**. For the metric walkthroughs below, set the time picker to **Last 2 hours** when you want a tight ops window; the six platform dashboards default to a **wider range** so **Latest AI recommendation** and **Stored recommendation runs** (index **db-monitoring-recommendations**, filtered by **`database_platform`**) stay visible. The workflow **Database Monitoring — AI recommendations** runs on a **10-minute schedule** and writes **six** recommendations per run (one per engine); you can also trigger it manually under **Management → Workflows**.
+Open **Elastic Serverless → Dashboards**. Pre-built dashboards open with **Last 1 minute** so live OTLP charts populate quickly. For narrated walkthroughs, widen the time picker (for example **Last 2 hours**). **Latest AI recommendation** / **Stored recommendation runs** use the same global range—if a row is missing after a workflow run, try **Last 15 minutes** or more (index **db-monitoring-recommendations**, filtered by **`database_platform`**). The workflow **Database Monitoring — AI recommendations** runs on a **10-minute schedule** and writes **six** recommendations per run (one per engine); you can also trigger it manually under **Management → Workflows**.
 
 **Easy path:** finish **Part 1** (dashboards), then **Part 2** (create an alert from a panel—about two minutes). That is a complete lap for most audiences. **Optional:** the **Cursor + Elastic Agent Skills** walkthrough (rebuild a Datadog/Dynatrace-style dashboard) is **rolled up at the bottom**—expand it only when you have time and a laptop with Cursor.
 

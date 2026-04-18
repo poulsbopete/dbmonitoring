@@ -42,6 +42,9 @@ TB_AUTO = "BUCKET(@timestamp, 75, ?_tstart, ?_tend)"
 # Workflow `db-recommendations-workflow.yaml` writes markdown rows here (see README).
 REC_INDEX = "db-monitoring-recommendations"
 
+# Kibana time picker default for every deployed dashboard (hot OTLP window).
+DEFAULT_TIME_RANGE = ("now-1m", "now")
+
 
 def gid():
     return str(uuid.uuid4())
@@ -62,8 +65,10 @@ def post(path, body):
         sys.exit(f"HTTP {e.code} on {path}: {msg[:500]}")
 
 
-def create_dashboard_api(title, description, panels, time_from="now-2h", time_to="now"):
-    """POST /api/dashboards — one request per dashboard, inline Lens panels."""
+def create_dashboard_api(title, description, panels, time_from=None, time_to="now"):
+    """POST /api/dashboards — one request per dashboard, inline vis panels."""
+    if time_from is None:
+        time_from = DEFAULT_TIME_RANGE[0]
     result = post(
         "/api/dashboards",
         {
@@ -193,10 +198,6 @@ def ai_recommendation_panels(y_row, platform_key: str, include_legacy_null: bool
     ]
 
 
-# Default time range when a dashboard includes AI panels (workflow runs may be days apart).
-TIME_RANGE_AI = ("now-90d", "now")
-
-
 # ---------------------------------------------------------------------------
 # Dashboard builders
 # ---------------------------------------------------------------------------
@@ -244,8 +245,6 @@ def build_mysql():
         "Slow queries, lock contention, error trends, top tables, and AI workflow output (index "
         f"{REC_INDEX}) via OpenTelemetry",
         panels,
-        time_from=TIME_RANGE_AI[0],
-        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -288,8 +287,6 @@ def build_postgres():
         "Connections, deadlocks, database size, row operations, and AI workflow output (index "
         f"{REC_INDEX}) via OpenTelemetry",
         panels,
-        time_from=TIME_RANGE_AI[0],
-        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -332,8 +329,6 @@ def build_mssql():
         "Connections, lock waits, batch requests, buffer cache, I/O latency, and AI workflow output (index "
         f"{REC_INDEX}) via OpenTelemetry",
         panels,
-        time_from=TIME_RANGE_AI[0],
-        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -432,8 +427,6 @@ def build_mongodb():
         "Operation throughput, connections, memory, replication lag, document stats, and AI workflow output (index "
         f"{REC_INDEX}) via OpenTelemetry",
         panels,
-        time_from=TIME_RANGE_AI[0],
-        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -674,8 +667,6 @@ def build_db2():
         "Connections, buffer pool, log utilization, lock waits, tablespaces, and sort health via synthetic OpenTelemetry db2.* metrics. "
         f"Latest AI text is read from index {REC_INDEX} (written by the AI recommendations workflow).",
         panels,
-        time_from=TIME_RANGE_AI[0],
-        time_to=TIME_RANGE_AI[1],
     )
 
 
@@ -726,8 +717,6 @@ def build_oracle():
         "Sessions, tablespace utilisation, parse efficiency, reads, transactions, PGA memory, and AI workflow output (index "
         f"{REC_INDEX}) via OpenTelemetry",
         panels,
-        time_from=TIME_RANGE_AI[0],
-        time_to=TIME_RANGE_AI[1],
     )
 
 
