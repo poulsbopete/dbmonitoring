@@ -63,7 +63,7 @@ steps:
       method: POST
       path: /db-monitoring-recommendations/_doc
       body:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ now | date: '%Y-%m-%dT%H:%M:%SZ' }}"
         execution_id: "{{ execution.id }}"
         workflow_name: "{{ workflow.name }}"
         source: workflow_ai_recommendations
@@ -99,7 +99,7 @@ steps:
       method: POST
       path: /db-monitoring-recommendations/_doc
       body:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ now | date: '%Y-%m-%dT%H:%M:%SZ' }}"
         execution_id: "{{ execution.id }}"
         workflow_name: "{{ workflow.name }}"
         source: workflow_ai_recommendations
@@ -136,7 +136,7 @@ steps:
       method: POST
       path: /db-monitoring-recommendations/_doc
       body:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ now | date: '%Y-%m-%dT%H:%M:%SZ' }}"
         execution_id: "{{ execution.id }}"
         workflow_name: "{{ workflow.name }}"
         source: workflow_ai_recommendations
@@ -172,7 +172,7 @@ steps:
       method: POST
       path: /db-monitoring-recommendations/_doc
       body:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ now | date: '%Y-%m-%dT%H:%M:%SZ' }}"
         execution_id: "{{ execution.id }}"
         workflow_name: "{{ workflow.name }}"
         source: workflow_ai_recommendations
@@ -208,7 +208,7 @@ steps:
       method: POST
       path: /db-monitoring-recommendations/_doc
       body:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ now | date: '%Y-%m-%dT%H:%M:%SZ' }}"
         execution_id: "{{ execution.id }}"
         workflow_name: "{{ workflow.name }}"
         source: workflow_ai_recommendations
@@ -244,7 +244,7 @@ steps:
       method: POST
       path: /db-monitoring-recommendations/_doc
       body:
-        "@timestamp": "{{ execution.startedAt }}"
+        "@timestamp": "{{ now | date: '%Y-%m-%dT%H:%M:%SZ' }}"
         execution_id: "{{ execution.id }}"
         workflow_name: "{{ workflow.name }}"
         source: workflow_ai_recommendations
