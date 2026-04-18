@@ -3,9 +3,9 @@ slug: lab-01-database-monitoring
 id: a8za8uie5rvp
 type: challenge
 title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
-teaser: >-
-  Explore live OTel data for six databases in Kibana—quick path is dashboards + an alert
-  from a panel. Advanced Cursor + Agent Skills lab is folded at the bottom of the assignment.
+teaser: Explore live OTel data for six databases in Kibana—quick path is dashboards
+  + an alert from a panel. Advanced Cursor + Agent Skills lab is folded at the bottom
+  of the assignment.
 notes:
 - type: text
   contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n
