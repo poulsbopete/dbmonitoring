@@ -36,7 +36,7 @@ for i in $(seq 1 12); do
   sleep 5
 done
 
-# Deploy dashboards via kibana-dashboards.js (uses /api/dashboards with Elastic-Api-Version: 1)
+# Deploy dashboards via kibana-dashboards.js (uses /api/dashboards with Elastic-Api-Version: 2023-10-31)
 echo "Deploying dashboards..."
 export KIBANA_API_KEY="${ES_API_KEY}"
 

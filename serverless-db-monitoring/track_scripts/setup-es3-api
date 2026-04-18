@@ -238,14 +238,18 @@ if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
     -d '{"attributes":{"workflows:ui:enabled":true}}')
   echo "DEBUG: workflows setting → HTTP ${_wf_http} $(cat /tmp/wf-setting.json | head -c 120)"
   echo "Deploying dashboards..."
+  set +e
   deploy_out=$(KIBANA_URL="$KIBANA_URL" ES_API_KEY="$ES_API_KEY" \
-    /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/scripts/import_dashboards.py" 2>&1 || true)
+    /opt/workshop-venv/bin/python3 "$DB_REPO_DIR/scripts/import_dashboards.py" 2>&1)
+  _dash_rc=$?
+  set -e
   echo "$deploy_out" | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log
-  if echo "$deploy_out" | grep -q "All dashboards created successfully"; then
-    echo "✓ All dashboards deployed"
-  else
-    echo "WARN: Dashboard deployment may have failed — check /tmp/db-monitoring-logs/dashboard-deploy.log" >&2
+  if [ "$_dash_rc" -ne 0 ] || ! echo "$deploy_out" | grep -q "All dashboards created successfully"; then
+    echo "ERROR: Dashboard deployment failed (exit ${_dash_rc}). See /tmp/db-monitoring-logs/dashboard-deploy.log" >&2
+    echo "Common cause: Kibana rejected Elastic-Api-Version — ensure import_dashboards.py uses a calendar version (2023-10-31)." >&2
+    exit 1
   fi
+  echo "✓ All dashboards deployed"
 else
   echo "WARN: ES_API_KEY not set — skipping dashboard deployment." >&2
 fi

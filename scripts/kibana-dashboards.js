@@ -137,12 +137,16 @@ function getKibanaConfig() {
   return { url, username, password, apiKey, spaceId, insecure };
 }
 
+/** Public versioned Kibana APIs (Dashboards, Lens) require a calendar version on Serverless. */
+const ELASTIC_API_VERSION = process.env.KIBANA_ELASTIC_API_VERSION || "2023-10-31";
+
 function getHeaders(config) {
   const headers = {
     "Content-Type": "application/json",
     "kbn-xsrf": "true",
     "x-elastic-internal-origin": "kibana",
     "User-Agent": "elastic-agentic",
+    "Elastic-Api-Version": ELASTIC_API_VERSION,
   };
 
   if (config.apiKey) {
@@ -220,9 +224,7 @@ async function kibanaFetch(path, options = {}) {
  * GET /api/dashboards/:id (with version header)
  */
 async function getDashboard(id) {
-  return kibanaFetch(`/api/dashboards/${encodeURIComponent(id)}`, {
-    headers: { "Elastic-Api-Version": "1" },
-  });
+  return kibanaFetch(`/api/dashboards/${encodeURIComponent(id)}`);
 }
 
 /**
@@ -245,7 +247,6 @@ async function createDashboard(definition) {
 
   return kibanaFetch("/api/dashboards", {
     method: "POST",
-    headers: { "Elastic-Api-Version": "1" },
     body: JSON.stringify(body),
   });
 }
@@ -269,7 +270,6 @@ async function updateDashboard(id, definition) {
 
   return kibanaFetch(`/api/dashboards/${encodeURIComponent(id)}`, {
     method: "PUT",
-    headers: { "Elastic-Api-Version": "1" },
     body: JSON.stringify(body),
   });
 }
@@ -281,7 +281,6 @@ async function updateDashboard(id, definition) {
 async function deleteDashboard(id) {
   return kibanaFetch(`/api/dashboards/${encodeURIComponent(id)}`, {
     method: "DELETE",
-    headers: { "Elastic-Api-Version": "1" },
   });
 }
 
@@ -298,9 +297,7 @@ async function listLensVisualizations(query = "", page = 1, per_page = 100) {
   if (query) {
     params.set("query", query);
   }
-  return kibanaFetch(`/api/visualizations?${params.toString()}`, {
-    headers: { "Elastic-Api-Version": "1" },
-  });
+  return kibanaFetch(`/api/visualizations?${params.toString()}`);
 }
 
 /**
@@ -308,9 +305,7 @@ async function listLensVisualizations(query = "", page = 1, per_page = 100) {
  * GET /api/visualizations/:id?apiVersion=1
  */
 async function getLensVisualization(id) {
-  return kibanaFetch(`/api/visualizations/${id}?apiVersion=1`, {
-    headers: { "Elastic-Api-Version": "1" },
-  });
+  return kibanaFetch(`/api/visualizations/${id}?apiVersion=1`);
 }
 
 /**
@@ -321,7 +316,6 @@ async function getLensVisualization(id) {
 async function createLensVisualization(definition) {
   return kibanaFetch("/api/visualizations?apiVersion=1", {
     method: "POST",
-    headers: { "Elastic-Api-Version": "1" },
     body: JSON.stringify(definition),
   });
 }
@@ -334,7 +328,6 @@ async function createLensVisualization(definition) {
 async function updateLensVisualization(id, definition) {
   return kibanaFetch(`/api/visualizations/${id}?apiVersion=1`, {
     method: "PUT",
-    headers: { "Elastic-Api-Version": "1" },
     body: JSON.stringify(definition),
   });
 }
@@ -346,7 +339,6 @@ async function updateLensVisualization(id, definition) {
 async function deleteLensVisualization(id) {
   return kibanaFetch(`/api/visualizations/${id}?apiVersion=1`, {
     method: "DELETE",
-    headers: { "Elastic-Api-Version": "1" },
   });
 }
 

@@ -9,8 +9,8 @@ alwaysApply: false
 When adding or changing Kibana dashboards or Lens visualizations in this repo:
 
 1. **Follow the Elastic agent skill** `kibana-dashboards` (declarative Lens + Dashboards API). Prefer inline `config.attributes` on dashboard panels over `savedObjectId` references.
-2. **Use the Dashboards API** for whole dashboards: `POST /api/dashboards` with header `Elastic-Api-Version: 1` (and standard Kibana auth headers). Do not use `POST /api/saved_objects/dashboard` for new lab deploys unless the Dashboards API is unavailable.
-3. **Standalone Lens** (if needed): `POST /api/visualizations?apiVersion=1` with the same API version header—not `saved_objects/lens`.
+2. **Use the Dashboards API** for whole dashboards: `POST /api/dashboards` with header `Elastic-Api-Version: 2023-10-31` (calendar version; **not** literal `1` on current Serverless). Override via env `KIBANA_ELASTIC_API_VERSION` if Elastic documents a newer default. Standard Kibana auth headers apply. Do not use `POST /api/saved_objects/dashboard` for new lab deploys unless the Dashboards API is unavailable.
+3. **Standalone Lens** (if needed): `POST /api/visualizations?apiVersion=1` with the same `Elastic-Api-Version` as dashboards—not `saved_objects/lens`.
 4. **ES|QL time series**: use auto buckets `BUCKET(@timestamp, 75, ?_tstart, ?_tend)` in queries unless a fixed interval is required for teaching.
 5. **Reference**: `scripts/kibana-dashboards.js` and `~/.agents/skills/kibana-dashboards/` (SKILL.md + `references/`).
 

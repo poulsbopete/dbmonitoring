@@ -6,7 +6,8 @@ Uses POST /api/dashboards with inline Lens config.attributes (declarative ES|QL 
 Aligns with the Elastic **kibana-dashboards** agent skill and Dashboard / Visualizations API.
 
 Usage:  python3 scripts/import_dashboards.py
-Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD)
+Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
+        Optional KIBANA_ELASTIC_API_VERSION (default 2023-10-31) for the Dashboards API version header.
 """
 import json, os, sys, uuid, urllib.request, urllib.error, base64
 
@@ -30,7 +31,8 @@ HEADERS = {
     "kbn-xsrf": "true",
     "x-elastic-internal-origin": "kibana",
     "Content-Type": "application/json",
-    "Elastic-Api-Version": "1",
+    # Serverless / recent Kibana rejects "1"; public versioned APIs use a calendar version.
+    "Elastic-Api-Version": os.environ.get("KIBANA_ELASTIC_API_VERSION", "2023-10-31"),
     "User-Agent": "elastic-agentic",
 }
 
