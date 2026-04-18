@@ -85,6 +85,25 @@ def rec_markdown_so_id(platform_key: str) -> str:
     return f"dbmon-ai-rec-{platform_key}"
 
 
+def _markdown_saved_object_exists(so_id: str) -> bool:
+    """HEAD/GET whether a markdown saved object exists (404 → False)."""
+    qid = urllib.parse.quote(so_id, safe="")
+    path = f"/api/saved_objects/markdown/{qid}"
+    hdrs = {k: v for k, v in HEADERS.items() if k.lower() != "content-type"}
+    req = urllib.request.Request(f"{KIBANA_URL}{path}", headers=hdrs, method="GET")
+    try:
+        with urllib.request.urlopen(req) as r:
+            return 200 <= r.status < 300
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            return False
+        print(f"WARN: GET {path} → HTTP {e.code}", file=sys.stderr)
+        return False
+    except OSError as e:
+        print(f"WARN: GET {path}: {e}", file=sys.stderr)
+        return False
+
+
 def _post_markdown_saved_object_try(so_id: str, content: str, title: str) -> bool:
     """POST /api/saved_objects/markdown/{id}?overwrite=true — return False on HTTP error (no sys.exit)."""
     qid = urllib.parse.quote(so_id, safe="")
@@ -112,7 +131,10 @@ def _post_markdown_saved_object_try(so_id: str, content: str, title: str) -> boo
 
 
 def ensure_rec_markdown_library_objects():
-    """Create / refresh library markdown objects referenced by AI recommendation panels."""
+    """Ensure library markdown objects exist (placeholder only when missing).
+
+    Does **not** overwrite existing objects so a workflow run before re-import is not wiped.
+    """
     global _REC_MARKDOWN_SO_READY
     placeholder = (
         "### AI recommendations\n\n"
@@ -123,15 +145,17 @@ def ensure_rec_markdown_library_objects():
     for p in REC_SO_MARKDOWN_PLATFORMS:
         sid = rec_markdown_so_id(p)
         title = f"AI recommendations — {p}"
+        if _markdown_saved_object_exists(sid):
+            continue
         if not _post_markdown_saved_object_try(sid, placeholder, title):
             ok = False
-    _REC_MARKDOWN_SO_READY = ok
-    if not ok:
+    _REC_MARKDOWN_SO_READY = all(_markdown_saved_object_exists(rec_markdown_so_id(p)) for p in REC_SO_MARKDOWN_PLATFORMS)
+    if not _REC_MARKDOWN_SO_READY:
         print(
-            "WARN: Some library markdown objects failed; AI panels fall back to live ES|QL metric only.",
+            "WARN: Some library markdown objects are missing; AI panels fall back to live ES|QL metric only.",
             file=sys.stderr,
         )
-    return ok
+    return _REC_MARKDOWN_SO_READY
 
 
 def list_dashboard_ids_by_title():
