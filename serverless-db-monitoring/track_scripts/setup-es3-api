@@ -246,7 +246,7 @@ if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
   echo "$deploy_out" | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log
   if [ "$_dash_rc" -ne 0 ] || ! echo "$deploy_out" | grep -q "All dashboards created successfully"; then
     echo "ERROR: Dashboard deployment failed (exit ${_dash_rc}). See /tmp/db-monitoring-logs/dashboard-deploy.log" >&2
-    echo "Common cause: Kibana rejected Elastic-Api-Version — ensure import_dashboards.py uses a calendar version (2023-10-31)." >&2
+    echo "Common cause: Kibana rejected Elastic-Api-Version — import_dashboards.py must send a calendar version (2023-10-31)." >&2
     exit 1
   fi
   echo "✓ All dashboards deployed"
