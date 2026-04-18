@@ -3,9 +3,9 @@ slug: lab-01-database-monitoring
 id: a8za8uie5rvp
 type: challenge
 title: Database Monitoring — MySQL · PostgreSQL · SQL Server · MongoDB · Db2 · Oracle
-teaser: Explore live performance data across MySQL, PostgreSQL, SQL Server, MongoDB,
-  IBM Db2, and Oracle in Elastic Observability Serverless. No proprietary agents.
-  OpenTelemetry end to end.
+teaser: >-
+  Explore live OTel data for six databases in Kibana—quick path is dashboards + an alert
+  from a panel. Advanced Cursor + Agent Skills lab is folded at the bottom of the assignment.
 notes:
 - type: text
   contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n
@@ -90,6 +90,9 @@ enhanced_loading: null
 
 Ten dashboards were deployed automatically when this track started (six database platforms plus SQL Server overview and three Spotlight-style views).
 Open **Elastic Serverless → Dashboards**. For the metric walkthroughs below, set the time picker to **Last 2 hours** when you want a tight ops window; the six platform dashboards default to a **wider range** so **Latest AI recommendation** and **Stored recommendation runs** (index **db-monitoring-recommendations**, filtered by **`database_platform`**) stay visible. The workflow **Database Monitoring — AI recommendations** runs on a **10-minute schedule** and writes **six** recommendations per run (one per engine); you can also trigger it manually under **Management → Workflows**.
+
+**Easy path:** finish **Part 1** (dashboards), then **Part 2** (create an alert from a panel—about two minutes). That is a complete lap for most audiences. **Optional:** the **Cursor + Elastic Agent Skills** walkthrough (rebuild a Datadog/Dynatrace-style dashboard) is **rolled up at the bottom**—expand it only when you have time and a laptop with Cursor.
+
 
 ---
 
@@ -262,7 +265,58 @@ chains, ERRORLOG text, full Windows OS counters, PaaS SQL boundaries).
 
 ---
 
-## Part 2 — Build a custom dashboard with Cursor + Elastic Agent Skills
+## Part 2 — Add an alert
+
+When you are ready, add a threshold alert directly from Kibana:
+
+1. In the **SQL Server** dashboard, hover over the **Lock Wait Time** panel → **⋮** → **Create alert**.
+2. Set: **Lock wait avg > 50 ms** for **5 minutes**.
+3. Optionally configure a Slack or email connector in **Stack Management → Connectors**.
+
+> This takes ~2 minutes. Datadog charges per alert rule per host. In Elastic, alerts
+> are unlimited and built on the same query engine as the dashboards.
+
+### Cross-project search and cases
+
+Pre-built alert rules can run the **Database Monitoring — Root Cause Analysis** workflow, which creates an **Observability case** with an AI investigation summary. After a case exists, you can **enrich** the investigation using Elastic **[Cross-project search](https://www.elastic.co/docs/explore-analyze/cross-project-search)** (technical preview): in the Elastic Cloud console, open your **Observability** Serverless project, go to **Cross-project search**, and **link** a **Security** Serverless project (or other projects you use). With projects linked, searches from Observability can span linked indices—so you can check for **security-relevant context** (for example detections or authentication anomalies) while triaging a database incident, without manually switching projects for every query.
+
+---
+
+## Troubleshooting
+
+If charts are empty, verify the data pipeline:
+
+```bash
+source ~/.bashrc
+
+# Check generator is running
+ps aux | grep db_otel_generator | grep -v grep
+
+# Restart if needed
+nohup python3 /opt/dbmonitoring/tools/db_otel_generator.py \
+  --otlp-endpoint "${WORKSHOP_OTLP_ENDPOINT}" \
+  --otlp-auth "${WORKSHOP_OTLP_AUTH_HEADER}" \
+  --live \
+  >> /tmp/db-monitoring-logs/generator.log 2>&1 &
+
+# Watch live output
+tail -f /tmp/db-monitoring-logs/generator.log
+
+# Confirm data is reaching Elastic (spot-check each stream)
+curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
+  "${ES_URL}/metrics-sqlserverreceiver.otel.otel-default/_count" | jq .count
+curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
+  "${ES_URL}/metrics-db2receiver.otel.otel-default/_count" | jq .count
+curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
+  "${ES_URL}/metrics-oracledbreceiver.otel.otel-default/_count" | jq .count
+```
+
+---
+
+## Optional — Cursor + Elastic Agent Skills (expand to use)
+
+<details>
+<summary><strong>Optional: rebuild a competitor dashboard in Cursor</strong> (Agent + <code>kibana-dashboards</code> skill — laptop with this track’s credentials)</summary>
 
 This is the **"WOW moment"** of the demo. You will take a description (or screenshot)
 of an existing Datadog or Dynatrace dashboard and rebuild it in Elastic in under 2 minutes
@@ -482,50 +536,4 @@ FROM metrics-sqlserverreceiver.otel.otel-default
 Please fix the field name or query syntax.
 ```
 
----
-
-## Part 3 — Add an alert
-
-Once the dashboard looks right, add a threshold alert directly from Kibana:
-
-1. In the **SQL Server** dashboard, hover over the **Lock Wait Time** panel → **⋮** → **Create alert**.
-2. Set: **Lock wait avg > 50 ms** for **5 minutes**.
-3. Optionally configure a Slack or email connector in **Stack Management → Connectors**.
-
-> This takes ~2 minutes. Datadog charges per alert rule per host. In Elastic, alerts
-> are unlimited and built on the same query engine as the dashboards.
-
-### Cross-project search and cases
-
-Pre-built alert rules can run the **Database Monitoring — Root Cause Analysis** workflow, which creates an **Observability case** with an AI investigation summary. After a case exists, you can **enrich** the investigation using Elastic **[Cross-project search](https://www.elastic.co/docs/explore-analyze/cross-project-search)** (technical preview): in the Elastic Cloud console, open your **Observability** Serverless project, go to **Cross-project search**, and **link** a **Security** Serverless project (or other projects you use). With projects linked, searches from Observability can span linked indices—so you can check for **security-relevant context** (for example detections or authentication anomalies) while triaging a database incident, without manually switching projects for every query.
-
----
-
-## Troubleshooting
-
-If charts are empty, verify the data pipeline:
-
-```bash
-source ~/.bashrc
-
-# Check generator is running
-ps aux | grep db_otel_generator | grep -v grep
-
-# Restart if needed
-nohup python3 /opt/dbmonitoring/tools/db_otel_generator.py \
-  --otlp-endpoint "${WORKSHOP_OTLP_ENDPOINT}" \
-  --otlp-auth "${WORKSHOP_OTLP_AUTH_HEADER}" \
-  --live \
-  >> /tmp/db-monitoring-logs/generator.log 2>&1 &
-
-# Watch live output
-tail -f /tmp/db-monitoring-logs/generator.log
-
-# Confirm data is reaching Elastic (spot-check each stream)
-curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
-  "${ES_URL}/metrics-sqlserverreceiver.otel.otel-default/_count" | jq .count
-curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
-  "${ES_URL}/metrics-db2receiver.otel.otel-default/_count" | jq .count
-curl -s -H "Authorization: ApiKey ${ES_API_KEY}" \
-  "${ES_URL}/metrics-oracledbreceiver.otel.otel-default/_count" | jq .count
-```
+</details>
