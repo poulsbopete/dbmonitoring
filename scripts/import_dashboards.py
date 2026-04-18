@@ -571,6 +571,7 @@ def build_spotlight_sql_overview():
 def build_db2():
     print("  Building IBM Db2 dashboard (Dashboards API)...")
     IDX = "metrics-db2receiver.otel.otel-default"
+    REC = "db-monitoring-recommendations"
     TB = TB_AUTO
     panels = [
         P((0, 0, 12, 5), "Active connections", viz_metric(
@@ -609,11 +610,23 @@ def build_db2():
             "Transaction log utilization %",
             f"FROM {IDX} | STATS log_pct = AVG(`db2.log.utilization`) BY bucket = {TB}, `host.name`",
             "area", "bucket", ["log_pct"], "host.name")),
+        P((0, 37, 36, 8), "Latest AI recommendation", viz_metric(
+            "Run workflow \u201cDatabase Monitoring \u2014 AI recommendations\u201d (Management \u2192 Workflows) to populate",
+            f"FROM {REC} | SORT @timestamp DESC | LIMIT 1 "
+            f"| STATS `Latest` = SUBSTRING(TO_STRING(recommendation), 0, 500)",
+            "Latest")),
+        P((36, 37, 12, 8), "Stored recommendation runs", viz_metric(
+            "",
+            f"FROM {REC} | STATS `Stored runs` = COUNT(*)",
+            "Stored runs")),
     ]
     return create_dashboard_api(
         "IBM Db2 \u2014 Performance & Health (LUW)",
-        "Connections, buffer pool, log utilization, lock waits, tablespaces, and sort health via synthetic OpenTelemetry db2.* metrics.",
+        "Connections, buffer pool, log utilization, lock waits, tablespaces, and sort health via synthetic OpenTelemetry db2.* metrics. "
+        "Latest AI text is read from index db-monitoring-recommendations (written by the AI recommendations workflow).",
         panels,
+        time_from="now-90d",
+        time_to="now",
     )
 
 

@@ -217,6 +217,18 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 6b. Index for workflow “AI recommendations” (ES|QL panels on Db2 dashboard)
+# ---------------------------------------------------------------------------
+if [ -n "${ES_URL:-}" ] && [ -n "${ELASTICSEARCH_PASSWORD:-}" ]; then
+  echo "Ensuring Elasticsearch index db-monitoring-recommendations exists..."
+  _rec_ix=$(curl -sS -o /tmp/rec-index-body.json -w "%{http_code}" -X PUT "${ES_URL}/db-monitoring-recommendations" \
+    -u "admin:${ELASTICSEARCH_PASSWORD}" \
+    -H "Content-Type: application/json" \
+    -d '{"mappings":{"properties":{"@timestamp":{"type":"date"},"execution_id":{"type":"keyword"},"workflow_name":{"type":"keyword"},"source":{"type":"keyword"},"recommendation":{"type":"text"}}}}')
+  echo "DEBUG: PUT db-monitoring-recommendations HTTP ${_rec_ix}"
+fi
+
+# ---------------------------------------------------------------------------
 # 7. Deploy Kibana dashboards via import_dashboards.py (Saved Objects API)
 # ---------------------------------------------------------------------------
 if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then

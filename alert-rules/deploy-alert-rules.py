@@ -432,6 +432,7 @@ if __name__ == "__main__":
         WORKFLOW_ID = wf_id
 
     slo_wf_id = deploy_workflow("db-slo-workflow.yaml", "SLO Workflow")
+    rec_wf_id = deploy_workflow("db-recommendations-workflow.yaml", "AI recommendations → Elasticsearch")
 
     print("\nDeploying Alert Rules...")
     for rule_id, body in RULES:
@@ -451,6 +452,9 @@ if __name__ == "__main__":
     if slo_wf_id:
         print(f"✓ SLO Workflow:  {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{slo_wf_id}")
         print(f"  → Trigger once to seed the 7 DB SLOs, then runs every 24 h automatically.")
+    if rec_wf_id:
+        print(f"✓ AI recommendations: {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{rec_wf_id}")
+        print(f"  → Run manually to append a row to db-monitoring-recommendations (shown on Db2 dashboard).")
     if wf_id:
         print("""
 ┌─ Wire RCA workflow to each rule in the UI ──────────────────────────────┐

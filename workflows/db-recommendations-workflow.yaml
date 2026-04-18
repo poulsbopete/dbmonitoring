@@ -1,0 +1,67 @@
+version: "1"
+name: Database Monitoring — AI recommendations 📝
+description: |
+  Calls the Observability AI agent with a Db2-focused operations prompt, then stores
+  the markdown answer in Elasticsearch index db-monitoring-recommendations so the
+  IBM Db2 dashboard can show the latest text alongside metrics.
+
+  Trigger manually from Kibana (Management → Workflows). Each run appends one document.
+enabled: true
+tags:
+  - database-monitoring
+  - db2
+  - ai
+  - DEMO
+triggers:
+  - type: manual
+
+steps:
+  - name: workflow-start
+    type: console
+    with:
+      message: |
+        AI recommendations workflow started (execution {{ execution.id }}).
+
+  - name: agent_recommend
+    type: kibana.request
+    with:
+      method: POST
+      path: /api/agent_builder/converse
+      headers:
+        kbn-xsrf: "true"
+      body:
+        agent_id: observability.agent
+        input: |
+          You are a senior database reliability engineer. The customer runs **IBM Db2 LUW**
+          alongside other databases in Elastic Observability. Synthetic OpenTelemetry metrics
+          land in index **metrics-db2receiver.otel.otel-default** (fields such as
+          db2.connection.active, db2.bufferpool.hit_ratio, db2.log.utilization,
+          db2.lock.wait_time.avg, db2.tablespace.used, db2.deadlock.count).
+
+          Produce **concise, actionable recommendations** (markdown, max ~40 lines):
+          1. What to watch first on a Db2 health dashboard (3–5 bullets).
+          2. Early warning thresholds or patterns tied to the metrics above.
+          3. When to escalate (e.g. log utilization, lock waits, buffer pool hit ratio).
+          4. One paragraph on how OpenTelemetry + Elastic compares to JDBC/Logstash-only
+             collection for older Db2 versions.
+
+          Do not fabricate customer-specific host names; keep advice generic and practical.
+
+  - name: index_recommendation
+    type: elasticsearch.request
+    with:
+      method: POST
+      path: /db-monitoring-recommendations/_doc
+      body:
+        "@timestamp": "{{ execution.startedAt }}"
+        execution_id: "{{ execution.id }}"
+        workflow_name: "{{ workflow.name }}"
+        source: workflow_ai_recommendations
+        recommendation: "{{ steps.agent_recommend.output.response.message }}"
+
+  - name: workflow-done
+    type: console
+    with:
+      message: |
+        Recommendation indexed. Open the **IBM Db2 — Performance & Health (LUW)** dashboard
+        (time range includes last 90 days) to see **Latest AI recommendation** and **Stored runs**.
