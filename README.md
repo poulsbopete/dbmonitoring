@@ -271,6 +271,8 @@ instruqt track push    # no --force unless you intend to overwrite remote track 
 
 The track slug is `serverless-db-monitoring` under the `elastic` organization.
 
+Each **Instruqt play** spins up a **temporary** Observability Serverless project and host. That environment is **torn down when the play ends**—Kibana URLs, API keys, dashboard IDs, and data do not persist. This repo and the Instruqt track definition are the durable artifacts.
+
 ---
 
 ## Live Resources

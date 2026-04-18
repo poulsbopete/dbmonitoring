@@ -32,3 +32,11 @@ This repo powers the Instruqt track under **`serverless-db-monitoring/`**. Track
 
 - **Git alone** does not update Instruqt UI, challenge text, or **`track.yml`** checksum on the platform.
 - **Instruqt alone** does not update code sandboxes clone from GitHub—both matter.
+
+## 5. Ephemeral Instruqt + Serverless (important)
+
+Each play is a **temporary** lab: Instruqt provisions a **fresh Elastic Observability Serverless** project (and host) for the session. **Projects, URLs, API keys, dashboard IDs, and indexed data are discarded** when the play ends—nothing in that project is a long-lived environment.
+
+- Treat **`KIBANA_URL` / `ES_API_KEY` / OTLP endpoints** from a play as **single-session credentials** (fine for demos; rotate or ignore after teardown).
+- **Do not** assume learners keep the same bookmarked dashboard URLs between plays (IDs change after redeploy).
+- **Source of truth** for dashboards, workflows, and scripts is **this Git repo** + **Instruqt track definition**; the Serverless project is only a disposable runtime for the workshop.
