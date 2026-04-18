@@ -6,6 +6,8 @@ Creates/updates database monitoring alert rules in Kibana.
 Usage:
   python3 alert-rules/deploy-alert-rules.py
   python3 alert-rules/deploy-alert-rules.py cleanup-workflows   # fix/remove broken "Untitled workflow" rows
+  python3 alert-rules/deploy-alert-rules.py deploy-workflow db-recommendations-workflow.yaml
+      # upsert one workflow (updates running instance when name matches Kibana)
 
 Env:
   KIBANA_URL, ES_API_KEY or KIBANA_API_KEY  (or ES_USERNAME + ES_PASSWORD)
@@ -387,17 +389,58 @@ RULES = [
 ]
 
 
+def _parse_workflow_name_from_yaml(yaml_content: str):
+    """First top-level `name:` value in workflow YAML (quoted or not)."""
+    for raw in yaml_content.splitlines():
+        line = raw.strip()
+        if not line.startswith("name:"):
+            continue
+        val = line[5:].strip()
+        if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'":
+            return val[1:-1]
+        return val
+    return None
+
+
+def _find_workflow_id_by_name(workflow_name: str):
+    """Return Kibana workflow id whose name equals workflow_name, or None."""
+    if not workflow_name:
+        return None
+    for w in list_workflows():
+        if not isinstance(w, dict):
+            continue
+        n = (w.get("name") or "").strip()
+        if n == workflow_name.strip():
+            return w.get("id")
+    return None
+
+
 def deploy_workflow(filename, label):
-    """Deploy a workflow YAML file to Kibana. Returns the workflow id or None."""
+    """
+    Deploy a workflow YAML to Kibana: update in place when a workflow with the same
+    YAML `name` already exists (POST /api/workflows with { id, yaml }), otherwise create.
+    """
     yaml_path = os.path.join(os.path.dirname(__file__), f"../workflows/{filename}")
     if not os.path.exists(yaml_path):
         print(f"  WARN: {filename} not found, skipping")
         return None
     yaml_content = open(yaml_path).read()
+    wname = _parse_workflow_name_from_yaml(yaml_content)
+    existing_id = _find_workflow_id_by_name(wname) if wname else None
+
+    if existing_id:
+        entry = {"id": existing_id, "yaml": yaml_content}
+        action = "update"
+    else:
+        entry = {"yaml": yaml_content}
+        action = "create"
+
     req = urllib.request.Request(
         f"{KIBANA_URL}/api/workflows",
-        data=json.dumps({"workflows": [{"yaml": yaml_content}]}).encode(),
-        headers=HEADERS, method="POST")
+        data=json.dumps({"workflows": [entry]}).encode(),
+        headers=HEADERS,
+        method="POST",
+    )
     try:
         with urllib.request.urlopen(req) as r:
             result = json.loads(r.read())
@@ -406,14 +449,19 @@ def deploy_workflow(filename, label):
                 print(f"  WARN: {label}: API reported failure: {failed[0]!s}"[:300])
                 return None
             created = result.get("created") or []
-            if not created:
-                print(f"  WARN: {label}: empty created[] response")
-                return None
-            wf = created[0]
-            print(f"  ✓ {label}: {wf.get('name', '?')} (id={wf['id']})")
-            return wf["id"]
+            updated = result.get("updated") or []
+            row = (created[0] if created else None) or (updated[0] if updated else None)
+            if row and row.get("id"):
+                wid = row["id"]
+                print(f"  ✓ {label}: {action} {row.get('name', '?')} (id={wid})")
+                return wid
+            if existing_id and not failed:
+                print(f"  ✓ {label}: {action} (id={existing_id})")
+                return existing_id
+            print(f"  WARN: {label}: unexpected response keys={list(result.keys())}")
+            return None
     except urllib.error.HTTPError as e:
-        print(f"  WARN: {label} deploy failed HTTP {e.code}: {e.read().decode()[:200]}")
+        print(f"  WARN: {label} deploy failed HTTP {e.code}: {e.read().decode()[:400]}")
         return None
 
 
@@ -422,6 +470,14 @@ if __name__ == "__main__":
         print("\nCleaning up broken workflows (Untitled only)...")
         cleanup_untitled_workflows()
         sys.exit(0)
+
+    if len(sys.argv) > 2 and sys.argv[1] == "deploy-workflow":
+        wf_file = sys.argv[2]
+        print(f"\nUpserting single workflow: {wf_file} ...")
+        wid = deploy_workflow(wf_file, wf_file)
+        if wid:
+            print(f"\n✓ {KIBANA_URL}/app/management/insightsAndAlerting/workflows/{wid}")
+        sys.exit(0 if wid else 1)
 
     print("\nCleaning up broken workflows (Untitled only)...")
     cleanup_untitled_workflows()

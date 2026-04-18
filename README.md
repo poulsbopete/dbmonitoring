@@ -237,8 +237,11 @@ export KIBANA_URL="https://xxx.kb.us-east-1.aws.elastic.cloud"
 export ES_API_KEY="<your-api-key>"
 python3 scripts/import_dashboards.py
 
-# Deploy alert rules + RCA and SLO workflows
+# Deploy alert rules + RCA and SLO workflows (workflows are upserted by YAML `name`)
 python3 alert-rules/deploy-alert-rules.py
+
+# Update only the AI recommendations workflow on an already-running Kibana project
+python3 alert-rules/deploy-alert-rules.py deploy-workflow db-recommendations-workflow.yaml
 ```
 
 ---
