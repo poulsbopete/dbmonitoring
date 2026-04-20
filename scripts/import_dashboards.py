@@ -9,9 +9,9 @@ Usage:  python3 scripts/import_dashboards.py
 Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
         Optional KIBANA_ELASTIC_API_VERSION (default 2023-10-31) for the Dashboards API version header.
 
-AI recommendation Markdown uses **library** ``markdown`` saved objects (``dbmon-ai-rec-*``) referenced by
-``ref_id`` on the dashboard; the **Database Monitoring — AI recommendations** workflow overwrites those
-objects after each run so text updates without re-running this importer.
+AI recommendation Markdown uses **library** ``markdown`` saved objects (``dbmon-ai-rec-*``). Panels use
+``ref_id`` set to that **plain id** (not ``markdown:…``). The **Database Monitoring — AI recommendations**
+workflow overwrites those objects after each run so text updates without re-running this importer.
 
 If a dashboard with the same title already exists, it is deleted first (GET /api/dashboards,
 then DELETE /api/dashboards/{id}) so re-runs update in place without duplicate titles.
@@ -286,14 +286,18 @@ def P(box, title, chart_config):
 
 
 def markdown_panel_by_library_ref(box, platform_key: str):
-    """Markdown panel by library reference (``ref_id``). Content lives on saved object ``dbmon-ai-rec-*``."""
+    """Markdown panel by library reference (``ref_id``). Content lives on saved object ``dbmon-ai-rec-*``.
+
+    Use the **plain saved object id** as ``ref_id`` (not ``markdown:…``); Serverless otherwise fails to
+    resolve the library item and shows “Could not locate that markdown”.
+    """
     sid = rec_markdown_so_id(platform_key)
     x, y, w, h = box
     return {
         "type": "markdown",
         "id": gid(),
         "grid": {"x": x, "y": y, "w": w, "h": h},
-        "config": {"ref_id": f"markdown:{sid}"},
+        "config": {"ref_id": sid},
     }
 
 
