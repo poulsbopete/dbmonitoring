@@ -3,7 +3,8 @@ slug: lab-01-database-monitoring
 id: a8za8uie5rvp
 type: challenge
 title: Database Monitoring Lab
-teaser: Live OTel for six engines in Kibana—dashboards plus one alert; optional Cursor lab at the end.
+teaser: Live OTel for six engines in Kibana—dashboards plus one alert; optional Cursor
+  lab at the end.
 notes:
 - type: text
   contents: "## While you wait… \U0001F9DB\n\n<iframe src=\"https://poulsbopete.github.io/Vampire-Clone/\"\n
