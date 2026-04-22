@@ -4,7 +4,8 @@ Import DB monitoring dashboards into Kibana via the Dashboards API (Kibana 9.4+)
 
 Uses POST /api/dashboards with inline **vis** panels (Kibana as-code). Serverless only allows
 embeddable types including **vis** (not **lens** on the panel). ES|QL must use **data_source**:
-``{ "type": "esql", "query": "..." }`` and simple **column** encodings (see Kibana ``dashboardApi`` tests).
+``{ "type": "esql", "query": "..." }``. Metrics use **column** in ``metrics``; **xy** layers need
+**operation: value** on ``x`` / ``y`` / ``breakdown_by`` (Kibana 9.5 composite schema) plus ``data_source`` per layer.
 **Elastic-Api-Version: 2023-10-31**.
 
 Usage:  python3 scripts/import_dashboards.py
@@ -223,18 +224,21 @@ def viz_metric(title, esql, column):
 
 
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
+    """XY chart: layer uses ``data_source`` (vis) + ``operation``/``column`` on encodings (Kibana 9.5 composite)."""
     temporal = x_col == "bucket" or "BUCKET(" in x_col
-    x_obj = {"column": x_col}
+    x_obj = {"operation": "value", "column": x_col}
     if temporal:
         x_obj["label"] = "@timestamp"
+    else:
+        x_obj["label"] = x_col
     layer = {
         "type": layer_type,
         "data_source": {"type": "esql", "query": esql},
         "x": x_obj,
-        "y": [{"column": c} for c in y_cols],
+        "y": [{"operation": "value", "column": c} for c in y_cols],
     }
     if breakdown_col:
-        layer["breakdown_by"] = {"column": breakdown_col}
+        layer["breakdown_by"] = {"operation": "value", "column": breakdown_col}
     cfg = {"type": "xy", "title": title, "layers": [layer]}
     if temporal:
         cfg["axis"] = {
