@@ -2,9 +2,10 @@
 """
 Import DB monitoring dashboards into Kibana via the Dashboards API (Kibana 9.4+).
 
-Uses POST /api/dashboards with inline type \"vis\" panels, flat `config`, and ES|QL (Kibana 9.4+).
-Serverless rejects `type: lens` for inline panels — use `vis` + header `Elastic-Api-Version: 2023-10-31`.
-ES|QL wiring uses **dataset** (`type: esql`); `data_source` is for data view references only (Kibana 9.5+).
+Uses POST /api/dashboards with inline **lens** panels: ``config.attributes`` holds the chart
+(metric / xy / …) with **dataset** for ES|QL. Kibana 9.5+ Serverless: flat **vis** with ``dataset`` alone
+fails validation (``data_source`` is required in another schema branch; ``esql`` in ``data_source`` is rejected
+in the first). Lens + **Elastic-Api-Version: 2023-10-31** matches the kibana-dashboards API reference.
 
 Usage:  python3 scripts/import_dashboards.py
 Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
@@ -187,7 +188,7 @@ def delete_dashboard_by_id(dash_id):
 
 
 def create_dashboard_api(title, description, panels, time_from=None, time_to="now"):
-    """POST /api/dashboards — one request per dashboard, inline vis panels."""
+    """POST /api/dashboards — one request per dashboard, inline lens panels (config.attributes)."""
     if time_from is None:
         time_from = DEFAULT_TIME_RANGE[0]
     result = post(
@@ -202,13 +203,13 @@ def create_dashboard_api(title, description, panels, time_from=None, time_to="no
     return result["id"]
 
 
-def vis_panel(panel_id, x, y, w, h, config):
-    """Kibana Dashboards API: inline `type: vis` with flat chart in `config` (Serverless; not lens)."""
+def lens_embed_panel(uid, x, y, w, h, attributes):
+    """Kibana 9.5+ Dashboards API: ES|QL chart lives in ``config.attributes`` (lens), not flat vis + dataset only."""
     return {
-        "type": "vis",
-        "id": panel_id,
+        "type": "lens",
+        "uid": uid,
         "grid": {"x": x, "y": y, "w": w, "h": h},
-        "config": config,
+        "config": {"attributes": attributes},
     }
 
 
@@ -252,13 +253,13 @@ def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
 
 
 def viz_heatmap(title, esql, x_col, y_col, value_col):
-    """Heat map (inline vis schema)."""
+    """Heat map (Lens chart-types reference: xAxis / yAxis)."""
     return {
         "type": "heatmap",
         "title": title,
         "dataset": {"type": "esql", "query": esql},
-        "x": {"operation": "value", "column": x_col},
-        "y": {"operation": "value", "column": y_col},
+        "xAxis": {"operation": "value", "column": x_col},
+        "yAxis": {"operation": "value", "column": y_col},
         "metric": {"operation": "value", "column": value_col},
     }
 
@@ -284,12 +285,12 @@ def viz_treemap(title, esql, metric_column, group_by_columns):
 
 
 def P(box, title, chart_config):
-    """One dashboard panel: (x,y,w,h), optional title override, flat vis chart config dict."""
+    """One dashboard panel: (x,y,w,h), title merged into attributes."""
     x, y, w, h = box
     cfg = dict(chart_config)
     if title is not None:
         cfg.setdefault("title", title)
-    return vis_panel(gid(), x, y, w, h, cfg)
+    return lens_embed_panel(gid(), x, y, w, h, cfg)
 
 
 def markdown_panel_by_library_ref(box, platform_key: str):
