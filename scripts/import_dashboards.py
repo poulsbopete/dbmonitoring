@@ -2,12 +2,12 @@
 """
 Import DB monitoring dashboards into Kibana via the Dashboards API (Kibana 9.4+).
 
-Uses POST /api/dashboards with inline type \"vis\" panels and declarative ES|QL (Kibana 9.4+ schema).
+Uses POST /api/dashboards with inline type \"lens\" panels (``config.attributes``) and declarative ES|QL.
 Aligns with the Elastic **kibana-dashboards** agent skill and Dashboard / Visualizations API.
 
 Usage:  python3 scripts/import_dashboards.py
 Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
-        Optional KIBANA_ELASTIC_API_VERSION (default 2023-10-31) for the Dashboards API version header.
+        Optional KIBANA_ELASTIC_API_VERSION (default 1) for the Dashboards API version header.
 
 AI recommendation Markdown uses **library** ``markdown`` saved objects (``dbmon-ai-rec-*``). Panels use
 ``ref_id`` set to that **plain id** (not ``markdown:…``). The **Database Monitoring — AI recommendations**
@@ -38,8 +38,7 @@ HEADERS = {
     "kbn-xsrf": "true",
     "x-elastic-internal-origin": "kibana",
     "Content-Type": "application/json",
-    # Serverless / recent Kibana rejects "1"; public versioned APIs use a calendar version.
-    "Elastic-Api-Version": os.environ.get("KIBANA_ELASTIC_API_VERSION", "2023-10-31"),
+    "Elastic-Api-Version": os.environ.get("KIBANA_ELASTIC_API_VERSION", "1"),
     "User-Agent": "elastic-agentic",
 }
 
@@ -187,7 +186,7 @@ def delete_dashboard_by_id(dash_id):
 
 
 def create_dashboard_api(title, description, panels, time_from=None, time_to="now"):
-    """POST /api/dashboards — one request per dashboard, inline vis panels."""
+    """POST /api/dashboards — one request per dashboard, inline lens panels (config.attributes)."""
     if time_from is None:
         time_from = DEFAULT_TIME_RANGE[0]
     result = post(
@@ -202,13 +201,13 @@ def create_dashboard_api(title, description, panels, time_from=None, time_to="no
     return result["id"]
 
 
-def vis_panel(panel_id, x, y, w, h, config):
-    """Kibana 9.4+ Dashboards API: panels use type \"vis\" with flat chart config (not lens + attributes)."""
+def lens_panel(uid, x, y, w, h, attributes):
+    """Kibana 9.4+ Dashboards API: inline chart lives under config.attributes (see kibana-dashboards skill)."""
     return {
-        "type": "vis",
-        "id": panel_id,
+        "type": "lens",
+        "uid": uid,
         "grid": {"x": x, "y": y, "w": w, "h": h},
-        "config": config,
+        "config": {"attributes": attributes},
     }
 
 
@@ -216,21 +215,28 @@ def viz_metric(title, esql, column):
     return {
         "type": "metric",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
-        "metrics": [{"type": "primary", "column": column, "label": column}],
+        "dataset": {"type": "esql", "query": esql},
+        "metrics": [
+            {"type": "primary", "operation": "value", "column": column, "label": column},
+        ],
     }
 
 
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
     temporal = x_col == "bucket" or "BUCKET(" in x_col
+    x_enc = {"operation": "value", "column": x_col}
+    if temporal:
+        x_enc["label"] = "@timestamp"
+    else:
+        x_enc["label"] = x_col
     layer = {
         "type": layer_type,
-        "data_source": {"type": "esql", "query": esql},
-        "x": {"column": x_col, "label": "@timestamp" if temporal else x_col},
-        "y": [{"column": c} for c in y_cols],
+        "dataset": {"type": "esql", "query": esql},
+        "x": x_enc,
+        "y": [{"operation": "value", "column": c} for c in y_cols],
     }
     if breakdown_col:
-        layer["breakdown_by"] = {"column": breakdown_col}
+        layer["breakdown_by"] = {"operation": "value", "column": breakdown_col}
     cfg = {"type": "xy", "title": title, "layers": [layer]}
     if temporal:
         cfg["axis"] = {
@@ -245,14 +251,14 @@ def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
 
 
 def viz_heatmap(title, esql, x_col, y_col, value_col):
-    """Heat map (inline vis schema for Kibana 9.4+)."""
+    """Heat map (Dashboards API + chart-types reference)."""
     return {
         "type": "heatmap",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
-        "x": {"column": x_col},
-        "y": {"column": y_col},
-        "metric": {"column": value_col},
+        "dataset": {"type": "esql", "query": esql},
+        "xAxis": {"operation": "value", "column": x_col},
+        "yAxis": {"operation": "value", "column": y_col},
+        "metric": {"operation": "value", "column": value_col},
     }
 
 
@@ -260,8 +266,8 @@ def viz_gauge(title, esql, column):
     return {
         "type": "gauge",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
-        "metric": {"column": column},
+        "dataset": {"type": "esql", "query": esql},
+        "metric": {"operation": "value", "column": column},
     }
 
 
@@ -270,19 +276,19 @@ def viz_treemap(title, esql, metric_column, group_by_columns):
     return {
         "type": "treemap",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
-        "metrics": [{"column": metric_column}],
-        "group_by": [{"column": c} for c in group_by_columns],
+        "dataset": {"type": "esql", "query": esql},
+        "metrics": [{"operation": "value", "column": metric_column}],
+        "group_by": [{"operation": "value", "column": c} for c in group_by_columns],
     }
 
 
 def P(box, title, chart_config):
-    """One dashboard panel: (x,y,w,h), optional title override, flat vis chart config dict."""
+    """One dashboard panel: (x,y,w,h), optional title on attributes dict."""
     x, y, w, h = box
     cfg = dict(chart_config)
     if title is not None:
         cfg.setdefault("title", title)
-    return vis_panel(gid(), x, y, w, h, cfg)
+    return lens_panel(gid(), x, y, w, h, cfg)
 
 
 def markdown_panel_by_library_ref(box, platform_key: str):
@@ -295,7 +301,7 @@ def markdown_panel_by_library_ref(box, platform_key: str):
     x, y, w, h = box
     return {
         "type": "markdown",
-        "id": gid(),
+        "uid": gid(),
         "grid": {"x": x, "y": y, "w": w, "h": h},
         "config": {"ref_id": sid},
     }
