@@ -223,8 +223,21 @@ def viz_metric(title, esql, column):
     }
 
 
+def _normalize_xy_layer_type(lt: str) -> str:
+    """Kibana 9.5 /api/dashboards vis xy layers: tests use area|bar|line, not *stacked* type strings."""
+    return {
+        "area_stacked": "area",
+        "area_percentage": "area",
+        "bar_stacked": "bar",
+        "bar_percentage": "bar",
+        "bar_horizontal_stacked": "bar_horizontal",
+        "bar_horizontal_percentage": "bar_horizontal",
+    }.get(lt, lt)
+
+
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
-    """XY chart: each layer uses ``dataset`` (ES|QL) + operation encodings; metrics use ``data_source`` on the panel."""
+    """XY: layers use ``data_source`` + operation encodings (Kibana dashboard API examples)."""
+    lt = _normalize_xy_layer_type(layer_type)
     temporal = x_col == "bucket" or "BUCKET(" in x_col
     x_obj = {"operation": "value", "column": x_col}
     if temporal:
@@ -232,8 +245,8 @@ def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
     else:
         x_obj["label"] = x_col
     layer = {
-        "type": layer_type,
-        "dataset": {"type": "esql", "query": esql},
+        "type": lt,
+        "data_source": {"type": "esql", "query": esql},
         "x": x_obj,
         "y": [{"operation": "value", "column": c} for c in y_cols],
     }
