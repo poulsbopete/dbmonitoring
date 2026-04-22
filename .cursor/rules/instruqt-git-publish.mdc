@@ -17,6 +17,7 @@ alwaysApply: true
 This repo powers the Instruqt track under **`serverless-db-monitoring/`**. Track metadata and checksum live on Instruqt until you push.
 
 - From repo root: **`cd serverless-db-monitoring && instruqt track push`** (CLI must be installed; `instruqt auth login` once per machine).
+- **Always run this after you `git push` work that matters for the lab** (including fixes only under `scripts/`, `dashboards/`, etc.). The CLI may report *Everything up-to-date*; that is fine—still run it so the Instruqt project and any track metadata stay aligned during **active incidents or failure resolution**. Do not skip Instruqt just because you did not edit `track.yml`.
 
 ## 3. Checksum follow-up
 
