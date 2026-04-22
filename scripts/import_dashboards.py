@@ -5,7 +5,7 @@ Import DB monitoring dashboards into Kibana via the Dashboards API (Kibana 9.4+)
 Uses POST /api/dashboards with inline **vis** panels (Kibana as-code). Serverless only allows
 embeddable types including **vis** (not **lens** on the panel). ES|QL must use **data_source**:
 ``{ "type": "esql", "query": "..." }``. Metrics use **column** in ``metrics``; **xy** layers need
-**operation: value** on ``x`` / ``y`` / ``breakdown_by`` (Kibana 9.5 composite schema) plus ``data_source`` per layer.
+**operation: value** on layer ``x`` / ``y`` / ``breakdown_by``; each **xy** layer uses **dataset** (ES|QL), not ``data_source``.
 **Elastic-Api-Version: 2023-10-31**.
 
 Usage:  python3 scripts/import_dashboards.py
@@ -224,7 +224,7 @@ def viz_metric(title, esql, column):
 
 
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
-    """XY chart: layer uses ``data_source`` (vis) + ``operation``/``column`` on encodings (Kibana 9.5 composite)."""
+    """XY chart: each layer uses ``dataset`` (ES|QL) + operation encodings; metrics use ``data_source`` on the panel."""
     temporal = x_col == "bucket" or "BUCKET(" in x_col
     x_obj = {"operation": "value", "column": x_col}
     if temporal:
@@ -233,23 +233,13 @@ def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
         x_obj["label"] = x_col
     layer = {
         "type": layer_type,
-        "data_source": {"type": "esql", "query": esql},
+        "dataset": {"type": "esql", "query": esql},
         "x": x_obj,
         "y": [{"operation": "value", "column": c} for c in y_cols],
     }
     if breakdown_col:
         layer["breakdown_by"] = {"operation": "value", "column": breakdown_col}
-    cfg = {"type": "xy", "title": title, "layers": [layer]}
-    if temporal:
-        cfg["axis"] = {
-            "x": {
-                "title": {"visible": False},
-                "scale": "temporal",
-                "domain": {"type": "fit", "rounding": False},
-            },
-            "y": {"anchor": "start", "title": {"visible": False}},
-        }
-    return cfg
+    return {"type": "xy", "title": title, "layers": [layer]}
 
 
 def viz_heatmap(title, esql, x_col, y_col, value_col):
