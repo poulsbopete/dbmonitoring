@@ -236,23 +236,21 @@ def _normalize_xy_layer_type(lt: str) -> str:
 
 
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
-    """XY: layers use ``data_source`` + operation encodings (Kibana dashboard API examples)."""
+    """XY vis panel: ``data_source`` at config level; layers use plain ``column`` refs (no ``operation``)."""
     lt = _normalize_xy_layer_type(layer_type)
-    temporal = x_col == "bucket" or "BUCKET(" in x_col
-    x_obj = {"operation": "value", "column": x_col}
-    if temporal:
-        x_obj["label"] = "@timestamp"
-    else:
-        x_obj["label"] = x_col
     layer = {
         "type": lt,
-        "data_source": {"type": "esql", "query": esql},
-        "x": x_obj,
-        "y": [{"operation": "value", "column": c} for c in y_cols],
+        "x": {"column": x_col},
+        "y": [{"column": c} for c in y_cols],
     }
     if breakdown_col:
-        layer["breakdown_by"] = {"operation": "value", "column": breakdown_col}
-    return {"type": "xy", "title": title, "layers": [layer]}
+        layer["breakdown_by"] = {"column": breakdown_col}
+    return {
+        "type": "xy",
+        "title": title,
+        "data_source": {"type": "esql", "query": esql},
+        "layers": [layer],
+    }
 
 
 def viz_heatmap(title, esql, x_col, y_col, value_col):
