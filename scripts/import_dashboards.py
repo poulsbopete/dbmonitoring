@@ -2,10 +2,10 @@
 """
 Import DB monitoring dashboards into Kibana via the Dashboards API (Kibana 9.4+).
 
-Uses POST /api/dashboards with inline **lens** panels: ``config.attributes`` holds the chart
-(metric / xy / …) with **dataset** for ES|QL. Kibana 9.5+ Serverless: flat **vis** with ``dataset`` alone
-fails validation (``data_source`` is required in another schema branch; ``esql`` in ``data_source`` is rejected
-in the first). Lens + **Elastic-Api-Version: 2023-10-31** matches the kibana-dashboards API reference.
+Uses POST /api/dashboards with inline **vis** panels (Kibana as-code). Serverless only allows
+embeddable types including **vis** (not **lens** on the panel). ES|QL must use **data_source**:
+``{ "type": "esql", "query": "..." }`` and simple **column** encodings (see Kibana ``dashboardApi`` tests).
+**Elastic-Api-Version: 2023-10-31**.
 
 Usage:  python3 scripts/import_dashboards.py
 Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
@@ -188,7 +188,7 @@ def delete_dashboard_by_id(dash_id):
 
 
 def create_dashboard_api(title, description, panels, time_from=None, time_to="now"):
-    """POST /api/dashboards — one request per dashboard, inline lens panels (config.attributes)."""
+    """POST /api/dashboards — one request per dashboard, inline vis panels (flat config)."""
     if time_from is None:
         time_from = DEFAULT_TIME_RANGE[0]
     result = post(
@@ -203,13 +203,13 @@ def create_dashboard_api(title, description, panels, time_from=None, time_to="no
     return result["id"]
 
 
-def lens_embed_panel(uid, x, y, w, h, attributes):
-    """Kibana 9.5+ Dashboards API: ES|QL chart lives in ``config.attributes`` (lens), not flat vis + dataset only."""
+def vis_panel(panel_id, x, y, w, h, config):
+    """Kibana Dashboards API: ``type: vis`` with flat chart in ``config`` (ES|QL via ``data_source``)."""
     return {
-        "type": "lens",
-        "uid": uid,
+        "type": "vis",
+        "id": panel_id,
         "grid": {"x": x, "y": y, "w": w, "h": h},
-        "config": {"attributes": attributes},
+        "config": config,
     }
 
 
@@ -217,28 +217,24 @@ def viz_metric(title, esql, column):
     return {
         "type": "metric",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "metrics": [
-            {"type": "primary", "operation": "value", "column": column, "label": column},
-        ],
+        "data_source": {"type": "esql", "query": esql},
+        "metrics": [{"type": "primary", "column": column, "label": column}],
     }
 
 
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
     temporal = x_col == "bucket" or "BUCKET(" in x_col
-    x_enc = {
-        "operation": "value",
-        "column": x_col,
-        "label": "@timestamp" if temporal else x_col,
-    }
+    x_obj = {"column": x_col}
+    if temporal:
+        x_obj["label"] = "@timestamp"
     layer = {
         "type": layer_type,
-        "dataset": {"type": "esql", "query": esql},
-        "x": x_enc,
-        "y": [{"operation": "value", "column": c} for c in y_cols],
+        "data_source": {"type": "esql", "query": esql},
+        "x": x_obj,
+        "y": [{"column": c} for c in y_cols],
     }
     if breakdown_col:
-        layer["breakdown_by"] = {"operation": "value", "column": breakdown_col}
+        layer["breakdown_by"] = {"column": breakdown_col}
     cfg = {"type": "xy", "title": title, "layers": [layer]}
     if temporal:
         cfg["axis"] = {
@@ -253,14 +249,14 @@ def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
 
 
 def viz_heatmap(title, esql, x_col, y_col, value_col):
-    """Heat map (Lens chart-types reference: xAxis / yAxis)."""
+    """Heat map (vis API: x / y / metric with column)."""
     return {
         "type": "heatmap",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "xAxis": {"operation": "value", "column": x_col},
-        "yAxis": {"operation": "value", "column": y_col},
-        "metric": {"operation": "value", "column": value_col},
+        "data_source": {"type": "esql", "query": esql},
+        "x": {"column": x_col},
+        "y": {"column": y_col},
+        "metric": {"column": value_col},
     }
 
 
@@ -268,8 +264,8 @@ def viz_gauge(title, esql, column):
     return {
         "type": "gauge",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "metric": {"operation": "value", "column": column},
+        "data_source": {"type": "esql", "query": esql},
+        "metric": {"column": column},
     }
 
 
@@ -278,19 +274,19 @@ def viz_treemap(title, esql, metric_column, group_by_columns):
     return {
         "type": "treemap",
         "title": title,
-        "dataset": {"type": "esql", "query": esql},
-        "metrics": [{"operation": "value", "column": metric_column}],
-        "group_by": [{"operation": "value", "column": c} for c in group_by_columns],
+        "data_source": {"type": "esql", "query": esql},
+        "metrics": [{"column": metric_column}],
+        "group_by": [{"column": c} for c in group_by_columns],
     }
 
 
 def P(box, title, chart_config):
-    """One dashboard panel: (x,y,w,h), title merged into attributes."""
+    """One dashboard panel: (x,y,w,h), optional title on chart config."""
     x, y, w, h = box
     cfg = dict(chart_config)
     if title is not None:
         cfg.setdefault("title", title)
-    return lens_embed_panel(gid(), x, y, w, h, cfg)
+    return vis_panel(gid(), x, y, w, h, cfg)
 
 
 def markdown_panel_by_library_ref(box, platform_key: str):
