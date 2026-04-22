@@ -76,7 +76,7 @@ def _request_json(method, path, body=None):
             return json.loads(raw)
     except urllib.error.HTTPError as e:
         msg = e.read().decode()
-        sys.exit(f"HTTP {e.code} on {path}: {msg[:500]}")
+        sys.exit(f"HTTP {e.code} on {path}: {msg[:5000]}")
 
 
 def post(path, body):
@@ -236,16 +236,19 @@ def _normalize_xy_layer_type(lt: str) -> str:
 
 
 def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
-    """XY chart: ``dataset`` inside each layer + ``operation:value`` encodings (Kibana chart-types-reference format)."""
+    """XY vis panel: ``data_source`` inside each layer + plain ``{column}`` refs (no ``operation``).
+
+    Confirmed format per elastic/example-mcp-dashbuilder dashboard-api-translator (2026-04-20).
+    """
     lt = _normalize_xy_layer_type(layer_type)
     layer = {
         "type": lt,
-        "dataset": {"type": "esql", "query": esql},
-        "x": {"operation": "value", "column": x_col},
-        "y": [{"operation": "value", "column": c} for c in y_cols],
+        "data_source": {"type": "esql", "query": esql},
+        "x": {"column": x_col},
+        "y": [{"column": c} for c in y_cols],
     }
     if breakdown_col:
-        layer["breakdown_by"] = {"operation": "value", "column": breakdown_col}
+        layer["breakdown_by"] = {"column": breakdown_col}
     return {"type": "xy", "title": title, "layers": [layer]}
 
 
