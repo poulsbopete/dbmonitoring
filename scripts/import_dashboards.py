@@ -4,6 +4,7 @@ Import DB monitoring dashboards into Kibana via the Dashboards API (Kibana 9.4+)
 
 Uses POST /api/dashboards with inline type \"vis\" panels, flat `config`, and ES|QL (Kibana 9.4+).
 Serverless rejects `type: lens` for inline panels — use `vis` + header `Elastic-Api-Version: 2023-10-31`.
+ES|QL wiring uses **dataset** (`type: esql`); `data_source` is for data view references only (Kibana 9.5+).
 
 Usage:  python3 scripts/import_dashboards.py
 Env:    KIBANA_URL + KIBANA_API_KEY (preferred) or ES_API_KEY (+ optional ES_USERNAME/ES_PASSWORD).
@@ -215,7 +216,7 @@ def viz_metric(title, esql, column):
     return {
         "type": "metric",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
+        "dataset": {"type": "esql", "query": esql},
         "metrics": [
             {"type": "primary", "operation": "value", "column": column, "label": column},
         ],
@@ -231,7 +232,7 @@ def viz_xy(title, esql, layer_type, x_col, y_cols, breakdown_col=None):
     }
     layer = {
         "type": layer_type,
-        "data_source": {"type": "esql", "query": esql},
+        "dataset": {"type": "esql", "query": esql},
         "x": x_enc,
         "y": [{"operation": "value", "column": c} for c in y_cols],
     }
@@ -255,7 +256,7 @@ def viz_heatmap(title, esql, x_col, y_col, value_col):
     return {
         "type": "heatmap",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
+        "dataset": {"type": "esql", "query": esql},
         "x": {"operation": "value", "column": x_col},
         "y": {"operation": "value", "column": y_col},
         "metric": {"operation": "value", "column": value_col},
@@ -266,7 +267,7 @@ def viz_gauge(title, esql, column):
     return {
         "type": "gauge",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
+        "dataset": {"type": "esql", "query": esql},
         "metric": {"operation": "value", "column": column},
     }
 
@@ -276,7 +277,7 @@ def viz_treemap(title, esql, metric_column, group_by_columns):
     return {
         "type": "treemap",
         "title": title,
-        "data_source": {"type": "esql", "query": esql},
+        "dataset": {"type": "esql", "query": esql},
         "metrics": [{"operation": "value", "column": metric_column}],
         "group_by": [{"operation": "value", "column": c} for c in group_by_columns],
     }
