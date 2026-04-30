@@ -13,8 +13,8 @@ const steps = [
   {
     icon: Search, num: '02', color: '#f59e0b',
     title: 'AI Investigates',
-    items: ['Observability AI agent', 'Queries Logs + Metrics', 'Correlates across DBs', 'Identifies root cause'],
-    badge: 'observability.agent',
+    items: ['Elastic AI agent (default)', 'Queries Logs + Metrics', 'Correlates across DBs', 'Identifies root cause'],
+    badge: 'Agent Builder',
   },
   {
     icon: FileText, num: '03', color: '#3b82f6',
@@ -119,7 +119,7 @@ export function Slide11AIWorkflow() {
             </div>
             <div className="p-3 rounded-2xl border border-white/12 bg-white/6 flex flex-col gap-1">
               <p className="text-white/55 text-[10px] uppercase tracking-widest font-semibold">Workflow Tech</p>
-              {['Kibana Workflows API (preview)', 'observability.agent LLM', 'Liquid template engine', 'YAML-as-code definition'].map(t => (
+              {['Kibana Workflows API (preview)', 'Elastic AI agent (converse API)', 'Liquid template engine', 'YAML-as-code definition'].map(t => (
                 <div key={t} className="text-white/65 text-[10px] flex items-start gap-1.5">
                   <span className="text-[#a855f7]">·</span>{t}
                 </div>

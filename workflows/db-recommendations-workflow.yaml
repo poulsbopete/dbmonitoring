@@ -1,7 +1,7 @@
 version: "1"
 name: Database Monitoring — AI recommendations 📝
 description: |
-  Every **10 minutes** (and on manual run), calls the Observability AI agent once per
+  Every **10 minutes** (and on manual run), calls the default Elastic AI agent (Agent Builder) once per
   database engine (MySQL, PostgreSQL, SQL Server, MongoDB, Db2, Oracle) with an
   engine-specific improvement prompt, then indexes each markdown answer into
   **db-monitoring-recommendations** with **database_platform** set so the matching
@@ -44,7 +44,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         input: |
           You are a senior database reliability engineer. The customer monitors **MySQL**
           in Elastic Observability via OpenTelemetry. Relevant data streams include
@@ -81,7 +80,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         input: |
           You are a senior database reliability engineer. The customer monitors **PostgreSQL**
           in Elastic Observability. Synthetic metrics land in
@@ -117,7 +115,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         input: |
           You are a senior database reliability engineer. The customer monitors **Microsoft SQL Server**
           in Elastic Observability. Metrics land in **metrics-sqlserverreceiver.otel.otel-default**
@@ -154,7 +151,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         input: |
           You are a senior database reliability engineer. The customer monitors **MongoDB**
           in Elastic Observability. Metrics land in **metrics-mongodbatlas.otel.otel-default**
@@ -190,7 +186,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         input: |
           You are a senior database reliability engineer. The customer runs **IBM Db2 LUW**
           in Elastic Observability. Synthetic OpenTelemetry metrics land in
@@ -226,7 +221,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         input: |
           You are a senior database reliability engineer. The customer monitors **Oracle**
           in Elastic Observability. Metrics land in **metrics-oracledbreceiver.otel.otel-default**

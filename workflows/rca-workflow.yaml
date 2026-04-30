@@ -3,7 +3,7 @@ name: Database Monitoring — Root Cause Analysis 🚨
 description: >
   AI-powered Root Cause Analysis workflow for database monitoring alerts.
   Investigates MySQL, PostgreSQL, SQL Server, MongoDB, IBM Db2, and Oracle anomalies using the
-  Observability AI Agent, then creates a case with a full investigation summary.
+  default Elastic AI agent (Agent Builder), then creates a case with a full investigation summary.
   Optional follow-up: in Serverless, link a Security project via Cross-project search so analysts
   can query security signals while enriching the same case in Observability.
 enabled: true
@@ -14,7 +14,7 @@ tags:
 triggers:
   - type: alert
 steps:
-  # Phase 1: AI investigates the alert using Observability Agent
+  # Phase 1: AI investigates the alert (Agent Builder default agent)
   - name: rca_analysis
     type: kibana.request
     with:
@@ -23,7 +23,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         input: |
           Investigate the following database monitoring alert: {{ event | json }}
 
@@ -54,7 +53,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         conversation_id: "{{ steps.rca_analysis.output.conversation_id }}"
         input: |
           Based on this investigation, generate a concise case title that clearly identifies
@@ -70,7 +68,6 @@ steps:
       headers:
         kbn-xsrf: "true"
       body:
-        agent_id: observability.agent
         conversation_id: "{{ steps.rca_analysis.output.conversation_id }}"
         input: |
           Based on this investigation, write a 2-3 sentence case description suitable for
