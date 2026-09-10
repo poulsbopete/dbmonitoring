@@ -7,6 +7,12 @@ echo "=== DB Monitoring Track — cleanup ==="
 pkill -f db_otel_generator.py 2>/dev/null && echo "Stopped data generator." || echo "Generator not running."
 
 DEPLOYMENT_ID="$(agent variable get ES_DEPLOYMENT_ID 2>/dev/null || echo "")"
+if [ -z "${DEPLOYMENT_ID:-}" ] && [ -f /root/.es_deployment_id ]; then
+  DEPLOYMENT_ID="$(tr -d '[:space:]' </root/.es_deployment_id)"
+fi
+if [ -z "${DEPLOYMENT_ID:-}" ] && [ -f /tmp/es_deployment_id ]; then
+  DEPLOYMENT_ID="$(tr -d '[:space:]' </tmp/es_deployment_id)"
+fi
 if [ -z "${DEPLOYMENT_ID:-}" ] && [ -f /tmp/project_results.json ]; then
   REG="${REGIONS:-aws-us-east-1}"
   DEPLOYMENT_ID="$(jq -r --arg r "$REG" '.[$r].id // empty' /tmp/project_results.json 2>/dev/null || echo "")"

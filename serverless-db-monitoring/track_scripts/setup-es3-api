@@ -54,6 +54,11 @@ done
 # ---------------------------------------------------------------------------
 # 1. Provision Elastic Observability Serverless project
 # ---------------------------------------------------------------------------
+# IMPORTANT: Project create happens BEFORE the rest of bootstrap. If later steps
+# fail (dashboards, apt, nginx, etc.) the Cloud project still exists. We:
+#   - persist ES_DEPLOYMENT_ID immediately (agent var + durable files)
+#   - install an ERR trap to delete the project if setup fails after create
+# Track cleanup alone is not enough: failed/abandoned plays often never run it.
 PRODUCT_TIER="${PRODUCT_TIER:-complete}"
 python3 bin/es3-api.py \
   --operation create \
@@ -73,19 +78,54 @@ done
 [ -f /tmp/project_results.json ] || { echo "ERROR: /tmp/project_results.json not found" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
-# 2. Export endpoints & credentials
+# 2. Export endpoints & credentials (persist ID BEFORE any fallible work)
 # ---------------------------------------------------------------------------
 REG="${REGIONS:-aws-us-east-1}"
 KIBANA_URL="$(jq -r --arg r "$REG" '.[$r].endpoints.kibana' /tmp/project_results.json)"
 ES_URL="$(jq -r --arg r "$REG" '.[$r].endpoints.elasticsearch' /tmp/project_results.json)"
 ELASTICSEARCH_PASSWORD="$(jq -r --arg r "$REG" '.[$r].credentials.password' /tmp/project_results.json)"
-export KIBANA_URL ES_URL ELASTICSEARCH_PASSWORD
+ES_DEPLOYMENT_ID="$(jq -r --arg r "$REG" '.[$r].id // empty' /tmp/project_results.json)"
+export KIBANA_URL ES_URL ELASTICSEARCH_PASSWORD ES_DEPLOYMENT_ID
+
+if [ -z "${ES_DEPLOYMENT_ID:-}" ] || [ "$ES_DEPLOYMENT_ID" = "null" ]; then
+  echo "ERROR: could not resolve project id from /tmp/project_results.json" >&2
+  exit 1
+fi
+
+# Durable copies for cleanup (agent vars are not always available on every teardown path)
+printf '%s\n' "$ES_DEPLOYMENT_ID" > /tmp/es_deployment_id
+printf '%s\n' "$ES_DEPLOYMENT_ID" > /root/.es_deployment_id
+chmod 600 /tmp/es_deployment_id /root/.es_deployment_id
 
 agent variable set ES_KIBANA_URL "$KIBANA_URL"
 agent variable set ES_URL "$ES_URL"
 agent variable set ES_USERNAME "$(jq -r --arg r "$REG" '.[$r].credentials.username' /tmp/project_results.json)"
 agent variable set ES_PASSWORD "$ELASTICSEARCH_PASSWORD"
-agent variable set ES_DEPLOYMENT_ID "$(jq -r --arg r "$REG" '.[$r].id' /tmp/project_results.json)"
+agent variable set ES_DEPLOYMENT_ID "$ES_DEPLOYMENT_ID"
+
+# If setup fails after create, delete the Serverless project immediately.
+# Instruqt track cleanup only runs on finish/idle-out — not reliably on setup failure.
+_delete_project_on_setup_failure() {
+  local rc=$?
+  trap - ERR
+  set +e
+  local id="${ES_DEPLOYMENT_ID:-}"
+  [ -z "$id" ] && [ -f /tmp/es_deployment_id ] && id="$(cat /tmp/es_deployment_id 2>/dev/null)"
+  [ -z "$id" ] && [ -f /root/.es_deployment_id ] && id="$(cat /root/.es_deployment_id 2>/dev/null)"
+  if [ -n "$id" ] && [ -n "${PME_CLOUD_INSTRUQT_API_KEY:-}" ]; then
+    echo "ERROR: setup failed (exit ${rc}) after project create — deleting Serverless project ${id}" >&2
+    python3 bin/es3-api.py \
+      --operation delete \
+      --project-type "${PROJECT_TYPE:-observability}" \
+      --regions "${REGIONS:-aws-us-east-1}" \
+      --project-id "$id" \
+      --api-key "${PME_CLOUD_INSTRUQT_API_KEY}" 2>&1 || echo "WARN: emergency delete failed for ${id}" >&2
+  else
+    echo "ERROR: setup failed (exit ${rc}) but cannot emergency-delete (id='${id:-}' key_present=$([ -n "${PME_CLOUD_INSTRUQT_API_KEY:-}" ] && echo yes || echo no))" >&2
+  fi
+  exit "$rc"
+}
+trap _delete_project_on_setup_failure ERR
 
 # Create scoped API key
 WORKSHOP_ES_API_KEY=""
@@ -257,11 +297,14 @@ if [ -n "${WORKSHOP_ES_API_KEY:-}" ]; then
   set -e
   echo "$deploy_out" | tee -a /tmp/db-monitoring-logs/dashboard-deploy.log
   if [ "$_dash_rc" -ne 0 ] || ! echo "$deploy_out" | grep -q "All dashboards deployed successfully"; then
-    echo "ERROR: Dashboard deployment failed (exit ${_dash_rc}). See /tmp/db-monitoring-logs/dashboard-deploy.log" >&2
-    echo "Common causes: Elastic-Api-Version (use 2023-10-31), or vis panel config (data_source type esql; Serverless disallows type lens on POST /api/dashboards). See import_dashboards.py." >&2
-    exit 1
+    # Do NOT exit 1 here: the Serverless project is already live and learners can still use
+    # Kibana + the OTel generator. Hard-failing setup after create was a major orphan source
+    # (cleanup often does not run when track setup fails).
+    echo "WARN: Dashboard deployment failed (exit ${_dash_rc}). Continuing bootstrap." >&2
+    echo "WARN: See /tmp/db-monitoring-logs/dashboard-deploy.log — re-run import_dashboards.py from the terminal if needed." >&2
+  else
+    echo "✓ All dashboards deployed"
   fi
-  echo "✓ All dashboards deployed"
 else
   echo "WARN: ES_API_KEY not set — skipping dashboard deployment." >&2
 fi
@@ -301,5 +344,8 @@ fi
 } >> /root/.bashrc
 
 find "$DB_REPO_DIR" -type f \( -name 'setup-es3-api' -o -name 'check-es3-api' -o -name 'solve-es3-api' -o -name 'cleanup-es3-api' \) -exec chmod +x {} \; || true
+
+# Setup succeeded — disable emergency delete trap (track cleanup owns teardown now)
+trap - ERR
 
 echo "=== Track bootstrap complete. Data generating, dashboards and alerts deployed. ==="
