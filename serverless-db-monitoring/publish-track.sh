@@ -10,4 +10,6 @@ git push origin "$BRANCH"
 echo "==> instruqt track push"
 cd serverless-db-monitoring
 instruqt track push
-echo "OK: Git + Instruqt updated."
+echo "==> re-apply sandbox secrets (track push drops sandboxConfig)"
+./apply-secrets.sh
+echo "OK: Git + Instruqt + secrets updated."
