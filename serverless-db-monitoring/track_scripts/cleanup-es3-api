@@ -34,11 +34,13 @@ echo "Deployment ID: ${DEPLOYMENT_ID:-<not set>}"
 echo "API key present: $([ -n "${PME_CLOUD_INSTRUQT_API_KEY:-}" ] && echo yes || echo no)"
 
 if [ -z "${DEPLOYMENT_ID:-}" ]; then
-  echo "ERROR: ES_DEPLOYMENT_ID not found — cannot delete Serverless project" >&2
-  exit 1
+  # Setup never created a project (failed early, or track setup was skipped).
+  # That is not a cleanup failure — there is nothing to delete.
+  echo "WARN: ES_DEPLOYMENT_ID not set — no Serverless project to delete (ok if setup never completed)."
+  exit 0
 fi
 if [ -z "${PME_CLOUD_INSTRUQT_API_KEY:-}" ]; then
-  echo "ERROR: ESS_CLOUD_API_KEY not set — cannot delete" >&2
+  echo "ERROR: ESS_CLOUD_API_KEY not set — cannot delete project ${DEPLOYMENT_ID}" >&2
   exit 1
 fi
 
