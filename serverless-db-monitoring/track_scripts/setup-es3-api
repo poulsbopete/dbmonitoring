@@ -20,11 +20,12 @@ if [ -z "${PME_CLOUD_INSTRUQT_API_KEY:-}" ]; then
 fi
 export PME_CLOUD_INSTRUQT_API_KEY
 
-set -euxo pipefail
+set -euo pipefail
+# Keep xtrace off around credentials — `set -x` prints ApiKey headers into Instruqt logs.
 
 echo "=== DB Monitoring Track — bootstrap (es3-api) ==="
 
-# Debug: show both variable lengths to detect Instruqt literal-string injection bug
+# Debug: lengths only (detect Instruqt literal-string injection bug without leaking the key)
 echo "DEBUG: PME_CLOUD_INSTRUQT_API_KEY length=${#PME_CLOUD_INSTRUQT_API_KEY} first4=${PME_CLOUD_INSTRUQT_API_KEY:0:4}"
 echo "DEBUG: ESS_CLOUD_API_KEY          length=${#ESS_CLOUD_API_KEY} first4=${ESS_CLOUD_API_KEY:0:4}"
 
@@ -34,12 +35,12 @@ if [[ "${PME_CLOUD_INSTRUQT_API_KEY}" == '$'* ]] || [[ "${#PME_CLOUD_INSTRUQT_AP
   PME_CLOUD_INSTRUQT_API_KEY="${ESS_CLOUD_API_KEY}"
 fi
 
-# Catch the classic Instruqt failure mode: sandbox secrets not linked after track push,
-# so the env var is literally the string "$ESS_CLOUD_API_KEY" (length 18).
+# Catch the classic failure: env is literally "$ESS_CLOUD_API_KEY" (length 18) because
+# config.yml had ESS_CLOUD_API_KEY: $ESS_CLOUD_API_KEY under environment:, or secrets missing.
 if [[ "${PME_CLOUD_INSTRUQT_API_KEY}" == '$'* ]] || [[ "${PME_CLOUD_INSTRUQT_API_KEY}" == 'ESS_CLOUD_API_KEY' ]] || [[ "${#PME_CLOUD_INSTRUQT_API_KEY}" -lt 20 ]]; then
   echo "ERROR: ESS_CLOUD_API_KEY was not injected (got literal/short value)." >&2
-  echo "ERROR: After 'instruqt track push', run: ./serverless-db-monitoring/apply-secrets.sh" >&2
-  echo "ERROR: Or in Instruqt UI: Sandbox → Secrets → attach ESS_CLOUD_API_KEY + LLM_PROXY_PROD." >&2
+  echo "ERROR: Ensure config.yml lists secrets: ESS_CLOUD_API_KEY (and do NOT set it under environment:)." >&2
+  echo "ERROR: Then: instruqt track push --force && ./apply-secrets.sh" >&2
   exit 1
 fi
 
