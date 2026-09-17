@@ -30,21 +30,24 @@ tags:
 - postgresql
 - mysql
 - db2
+- co.elastic.workshops.production
 - elastic
 - database-monitoring
 - opentelemetry
 - serverless
+- co.elastic.workshops.production.elastic_database_monitoring
 - sqlserver
 - mongodb
 - observability
 - oracle
+- co.elastic.workshops
 owner: elastic
 developers:
 - peter.simkins@elastic.co
 show_timer: true
 skipping_enabled: true
-idle_timeout: 600
-timelimit: 14400
+idle_timeout: 3600
+timelimit: 10800
 lab_config:
   extend_ttl: 3600
   sidebar_enabled: true
@@ -57,5 +60,5 @@ lab_config:
   hideStopButton: false
   default_layout: AssignmentRight
   default_layout_sidebar_size: 35
-checksum: "10672975944337594236"
+checksum: "11852783883001501428"
 enhanced_loading: false
