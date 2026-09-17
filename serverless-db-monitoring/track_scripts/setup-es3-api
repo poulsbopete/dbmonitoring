@@ -34,6 +34,15 @@ if [[ "${PME_CLOUD_INSTRUQT_API_KEY}" == '$'* ]] || [[ "${#PME_CLOUD_INSTRUQT_AP
   PME_CLOUD_INSTRUQT_API_KEY="${ESS_CLOUD_API_KEY}"
 fi
 
+# Catch the classic Instruqt failure mode: sandbox secrets not linked after track push,
+# so the env var is literally the string "$ESS_CLOUD_API_KEY" (length 18).
+if [[ "${PME_CLOUD_INSTRUQT_API_KEY}" == '$'* ]] || [[ "${PME_CLOUD_INSTRUQT_API_KEY}" == 'ESS_CLOUD_API_KEY' ]] || [[ "${#PME_CLOUD_INSTRUQT_API_KEY}" -lt 20 ]]; then
+  echo "ERROR: ESS_CLOUD_API_KEY was not injected (got literal/short value)." >&2
+  echo "ERROR: After 'instruqt track push', run: ./serverless-db-monitoring/apply-secrets.sh" >&2
+  echo "ERROR: Or in Instruqt UI: Sandbox → Secrets → attach ESS_CLOUD_API_KEY + LLM_PROXY_PROD." >&2
+  exit 1
+fi
+
 # Quick sanity-check against the Elastic Cloud API before attempting project creation
 _auth_check=$(curl -s -o /dev/null -w "%{http_code}" \
   -H "Authorization: ApiKey ${PME_CLOUD_INSTRUQT_API_KEY}" \
